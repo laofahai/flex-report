@@ -1,0 +1,16 @@
+{
+  "DataSource": {
+    "title": "Data Source Management",
+    "add": "Add Data Source",
+    "empty": "No data sources",
+    "type": "Type",
+    "name": "Data Source Name",
+    "config": "Config/Content (e.g. JSON string)",
+    "save": "Save"
+  },
+  "NavMain": {
+    "platform": "Platform",
+    "datasource": "Data Source"
+  }
+}
+
