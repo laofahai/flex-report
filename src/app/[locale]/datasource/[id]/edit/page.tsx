@@ -1,0 +1,30 @@
+import { getDataSources } from '@/actions/datasource';
+import { notFound } from 'next/navigation';
+import JsonConfig from '../../config/json-config';
+
+export default async function DataSourceEditPage({ params }: { params: Promise<{ id: string }> }) {
+
+  const {id} = await params;
+
+
+  const dataSources = await getDataSources();
+  const ds = dataSources.find(d => d.id === id);
+  if (!ds) return notFound();
+
+  let content = null;
+  if (ds.type === 'JSON') {
+    content = <JsonConfig dataSource={ds} />;
+  } else if (ds.type === 'MySQL') {
+    content = <div>MySQL Data Source Config Page (ID: {ds.id})</div>;
+  } else {
+    content = <div>Unsupported data source type: {ds.type}</div>;
+  }
+
+  return (
+    <div className="py-8">
+      <h1 className="text-2xl font-bold mb-4">Edit Data Source: {ds.name}</h1>
+      {content}
+    </div>
+  );
+}
+

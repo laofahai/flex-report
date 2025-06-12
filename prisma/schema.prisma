@@ -15,8 +15,16 @@ model DataSource {
   id        String   @id @default(uuid())
   name      String
   type      String
-  config    String   // 可存储 JSON 字符串或其他配置
+  config    String // 可存储 JSON 字符串或其他配置
+  schema    String? // 新增字段，存储解析后的结构
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+model TableDesign {
+  id        String   @id @default(uuid())
+  name      String
+  schema    String // JSON: { rows: TableRow[] }
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

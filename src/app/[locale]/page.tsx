@@ -5,7 +5,7 @@ export default async function Home() {
   return (
     <MainLayout>
       <div className="flex flex-col items-center justify-center h-full w-full">
-        <div className="w-full max-w-2xl">
+        <div className="w-full">
           hey
         </div>
       </div>

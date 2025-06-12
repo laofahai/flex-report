@@ -15,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { createDataSource, getDataSources, deleteDataSource } from '@/actions/datasource';
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Ruler } from "lucide-react";
 
 interface DataSource {
   id: string;
@@ -60,7 +60,7 @@ export default function DataSourcePage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-8">
+    <div className="py-8">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
         <Button onClick={() => setOpen(true)}>{t("add")}</Button>
@@ -81,6 +81,9 @@ export default function DataSourcePage() {
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={() => router.push(`datasource/${ds.id}/edit`)}>
                     <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => router.push(`datasource/${ds.id}/design`)}>
+                    <Ruler className="w-4 h-4" />
                   </Button>
                   <Button size="sm" variant="destructive" onClick={() => setDeleteId(ds.id)}>
                     <Trash2 className="w-4 h-4" />
