@@ -16,6 +16,7 @@ import { Popover as ShadPopover, PopoverContent as ShadPopoverContent, PopoverTr
 import { Label } from '@/components/ui/label'
 import { ChevronDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import {flatMap} from 'lodash-es'
 
 export interface CellConfigPanelProps {
   open: boolean;
@@ -88,18 +89,35 @@ export const CellConfigPanel: React.FC<CellConfigPanelProps> = ({
 
   // variableOptions 由 tableDesign/effectiveDatasourceId 推导（异步获取）
   const [variableOptions, setVariableOptions] = React.useState<DataSourceField[]>([]);
+  const [flattenVariableOptions, setFlattenVariableOptions] = React.useState<DataSourceField[]>([]);
 
   React.useEffect(() => {
     if (!tableDesign.dataSourceId) {
       setVariableOptions([]);
+      setFlattenVariableOptions([]);
       return;
     }
     getDataSourceById(tableDesign.dataSourceId).then(ds => {
-      setVariableOptions(JSON.parse(ds.schema?.toString() || "[]") as DataSourceField[]);
+      const options = JSON.parse(ds.schema?.toString() || "[]") as DataSourceField[];
+      setVariableOptions(options);
+      setFlattenVariableOptions(
+        flatMap(options, (field: DataSourceField) => field.children ? [field, ...field.children] : [field])
+      );
     }).catch(err => {
       console.log(err)
     });
-  });
+  }, [tableDesign.dataSourceId]);
+
+  const filteredOptions = React.useMemo(() => {
+    if (!search) return variableOptions;
+    const lower = search.toLowerCase()?.trim();
+    const res = flattenVariableOptions.filter(
+      opt =>(opt.label?.toLowerCase().includes(lower)) ||
+          opt.id.toLowerCase().includes(lower)
+    );
+
+    return res || [];
+  }, [search, flattenVariableOptions, variableOptions]);
 
   // react-hook-form
   const form = useForm({
@@ -128,28 +146,25 @@ export const CellConfigPanel: React.FC<CellConfigPanelProps> = ({
   }
 
   // 递归渲染字段和子字段
-  const renderFieldOptions = (field: DataSourceField, fieldHandler: any, search: string, level = 0) => {
-    const match = !search || (field.label?.includes(search) || field.id?.toLowerCase().includes(search.toLowerCase()));
+  const renderFieldOptions = (field: DataSourceField, fieldHandler: any, level = 0) => {
     const children = Array.isArray(field.children) ? field.children : [];
     return (
       <React.Fragment key={field.id}>
-        {match && (
-          <CommandItem
-            value={field.id}
-            onSelect={() => {
-              handleFieldUpdate(fieldHandler, field)
-            }}
-            style={{ paddingLeft: 16 + level * 16 }}
-          >
-            {field.label || field.id}
-            {field.label && (
-              <span className={"text-foreground border-l border-l-gray-200 pl-2"}>
-                {field.id}
-              </span>
-            )}
-          </CommandItem>
-        )}
-        {children.map((child: any) => renderFieldOptions(child, fieldHandler, search, level + 1))}
+        <CommandItem
+          value={field.id}
+          onSelect={() => {
+            handleFieldUpdate(fieldHandler, field)
+          }}
+          style={{ paddingLeft: 16 + level * 16 }}
+        >
+          {field.label || field.id}
+          {field.label && (
+            <span className={"text-foreground border-l border-l-gray-200 pl-2"}>
+              {field.id}
+            </span>
+          )}
+        </CommandItem>
+        {children.map((child: any) => renderFieldOptions(child, fieldHandler, level + 1))}
       </React.Fragment>
     );
   }
@@ -196,7 +211,7 @@ export const CellConfigPanel: React.FC<CellConfigPanelProps> = ({
                             <CommandInput placeholder="搜索字段..." value={search} onValueChange={setSearch} />
                             <CommandList>
                               <CommandEmpty>无匹配字段</CommandEmpty>
-                              {variableOptions && variableOptions.length > 0 && variableOptions.map(opt => renderFieldOptions(opt, field, search))}
+                              {filteredOptions.map(opt => renderFieldOptions(opt, field))}
                             </CommandList>
                           </Command>
                         </ShadPopoverContent>
