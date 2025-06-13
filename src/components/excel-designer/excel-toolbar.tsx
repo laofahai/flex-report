@@ -8,9 +8,11 @@ import {
   MenubarTrigger,
   MenubarContent,
   MenubarItem,
+  MenubarSeparator
 } from '@/components/ui/menubar'
 import { Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 
 interface TableToolbarProps {
   hotRef: React.RefObject<any>;
@@ -58,10 +60,14 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({ hotRef, selectionRan
     <Menubar>
       <MenubarMenu>
         <MenubarTrigger asChild>
-          <Button variant={"ghost"} onClick={handleShowPreview}>
+          <Button size={"sm"} variant={"ghost"} onClick={handleShowPreview}>
             <Eye />
+            预览
           </Button>
         </MenubarTrigger>
+      </MenubarMenu>
+      <MenubarMenu>
+      <Separator orientation={"vertical"} />
       </MenubarMenu>
       <MenubarMenu>
         <MenubarTrigger>字体</MenubarTrigger>

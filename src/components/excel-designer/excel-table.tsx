@@ -1,11 +1,13 @@
 import React, { useRef } from 'react';
-import { HotTable } from '@handsontable/react';
+import { HotTable, HotTableClass } from '@handsontable/react'
 import 'handsontable/dist/handsontable.full.min.css';
 import Handsontable, { CellRange } from 'handsontable'
 import { AutoColumnSize, ManualColumnResize, ManualRowResize, ContextMenu } from 'handsontable/plugins'
 import { ExcelDesignerRow, TableDesign } from '@/types/table-design'
 import { TableToolbar } from '@/components/excel-designer/excel-toolbar'
 import { CellConfigPanel } from './cell-config-panel';
+import { HyperFormula } from 'hyperformula'
+import { toast } from 'sonner'
 
 // @ts-ignore
 Handsontable.plugins.registerPlugin('ManualColumnResize', ManualColumnResize)
@@ -24,6 +26,7 @@ export interface ExcelTableProps {
   onRowHeightChange: (rowIdx: number, height: number) => void;
   onColumnWidthChange?: (colIdx: number, width: number) => void;
   onBeforeAlignChange?: (range: CellRange[], align: string, type: 'horizontal' | 'vertical') => void;
+  onUpdateMergeCells?: (mergeCells: any[]) => void;
 }
 
 export const ExcelTable: React.FC<ExcelTableProps> = ({
@@ -32,9 +35,10 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
                                                         onRowTypeChange,
                                                         onRowHeightChange,
                                                         onColumnWidthChange,
-                                                        onBeforeAlignChange
+                                                        onBeforeAlignChange,
+                                                        onUpdateMergeCells
                                                       }) => {
-  const hotRef = useRef<any>(null);
+  const hotRef = useRef<HotTableClass>(null);
   const [selectionRange, setSelectionRange] = React.useState<Handsontable.CellRange[] | null>(null);
   const [excelData, setExcelData] = React.useState<any[][]>(tableDesign.schema.rows.map(row => row.cells?.map(cell => {
     return cell.value || '';
@@ -98,6 +102,11 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
     );
   };
 
+  const hyperformulaInstance = HyperFormula.buildEmpty({
+    licenseKey: 'internal-use-in-handsontable',
+  });
+
+
   return (
     <div className="relative overflow-x-auto w-full" style={{ position: 'relative' }}>
       <div className={"py-2"}>
@@ -118,10 +127,68 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
         manualColumnFreeze={true}
         autoWrapRow={true}
         autoWrapCol={true}
+        mergeCells={tableDesign.schema.mergeCells as any[] || []}
+        formulas={
+          {
+            engine: hyperformulaInstance,
+            sheetName: 'Sheet1',
+          }
+        }
         contextMenu={{
           items: {
             ...ContextMenu.DEFAULT_ITEMS,
-            sep: ContextMenu.SEPARATOR,
+            sep0: ContextMenu.SEPARATOR,
+            mergeCells: {
+              key: 'mergeCells',
+              name: '合并单元格',
+              callback: () => {
+                const hot = hotRef.current?.hotInstance;
+                if (!hot || !onUpdateMergeCells) return;
+                const selected = hot.getSelectedRange();
+                if (!selected) return;
+                for (let i = 0; i < selected.length; i++) {
+                  for (let row = selected[i].from.row; row <= selected[i].to.row; row++) {
+                    if (tableDesign.schema.rows[row]?.type === 'loop') {
+                      toast.error("循环行不允许合并单元格");
+                      return; // 循环行不允许合并
+                    }
+                  }
+                }
+                onUpdateMergeCells([
+                  ...(tableDesign.schema.mergeCells || []),
+                  ...(selected || []).map(item => {
+                    return {
+                      row: item.from.row,
+                      col: item.from.col,
+                      rowspan: item.to.row - item.from.row + 1,
+                      colspan: item.to.col - item.from.col + 1
+                    };
+                  })
+                ]);
+              }
+            },
+            unmergeCells: {
+              key: 'unmergeCells',
+              name: '拆分单元格',
+              callback: () => {
+                const hot = hotRef.current?.hotInstance;
+                if (!hot || !onUpdateMergeCells) return;
+                const selected = hot.getSelectedRange();
+                if (selected && selected.length > 0) {
+                  const mergeCells = tableDesign.schema.mergeCells || [];
+                  const newMergeCells = mergeCells.filter(item => {
+                    return !(
+                      item.row >= selected[0].from.row &&
+                      item.col >= selected[0].from.col &&
+                      item.row + (item.rowspan || 1) - 1 <= selected[0].to.row &&
+                      item.col + (item.colspan || 1) - 1 <= selected[0].to.col
+                    );
+                  });
+                  onUpdateMergeCells(newMergeCells);
+                }
+              }
+            },
+            sep1: ContextMenu.SEPARATOR,
             switchToLoopRow: {
               key: 'switchToLoopRow',
               disabled: function() {
@@ -175,16 +242,16 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
         }}
         licenseKey="non-commercial-and-evaluation"
         afterSelectionEnd={(row: number, column: number, row2: number, column2: number) => {
-          const hot = hotRef.current.hotInstance;
-          const selectedRanges = hot.getSelectedRange(); // 支持多块区域
-          setSelectionRange(selectedRanges);
+          const hot = hotRef.current?.hotInstance;
+          const selectedRanges = hot?.getSelectedRange(); // 支持多块区域
+          setSelectionRange(selectedRanges || []);
           if (
             selectedRanges &&
             selectedRanges.length === 1 &&
             selectedRanges[0].from.row === selectedRanges[0].to.row &&
             selectedRanges[0].from.col === selectedRanges[0].to.col
           ) {
-            const cellCoords = hot.getCell(selectedRanges[0].from.row, selectedRanges[0].from.col);
+            const cellCoords = hot?.getCell(selectedRanges[0].from.row, selectedRanges[0].from.col);
             let anchorPosition = undefined;
             if (cellCoords) {
               const rect = cellCoords.getBoundingClientRect();
@@ -234,4 +301,5 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
     </div>
   );
 };
+
 

@@ -162,7 +162,7 @@ export const CellConfigPanel: React.FC<CellConfigPanelProps> = ({
       <PopoverContent side="bottom" align="start" className={"z-999"} style={{ minWidth: 320 }}>
         <div className={"flex justify-between items-center"}>
           <div className="font-semibold flex-1 flex gap-2 items-center">
-            <Badge variant={"secondary"} className={"text-base"}>{cellLabel}</Badge>
+            <Badge variant={"secondary"} className={"text-base font-bold tracking-wider"}>{cellLabel}</Badge>
             <div className="text-xs text-muted-foreground">Row: {row}, Col: {col}</div>
           </div>
           <div className={"flex gap-2 items-center"}>
@@ -242,7 +242,7 @@ export const CellConfigPanel: React.FC<CellConfigPanelProps> = ({
             <Separator className={"my-6"} />
             <div className="flex gap-2 justify-between">
               <Button size="sm" variant="outline" type="button" onClick={onClose}>取消</Button>
-              <Button size="sm" type="submit">确认</Button>
+              <Button size="sm" onClick={handleConfirm}>确认</Button>
             </div>
           </div>
         </Form>

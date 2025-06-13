@@ -74,6 +74,9 @@ importers:
       handsontable:
         specifier: ^15.3.0
         version: 15.3.0
+      hyperformula:
+        specifier: ^3.0.0
+        version: 3.0.0
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.21
@@ -4325,7 +4328,6 @@ snapshots:
   chevrotain@6.5.0:
     dependencies:
       regexp-to-ast: 0.4.0
-    optional: true
 
   chownr@3.0.0: {}
 
@@ -4982,7 +4984,6 @@ snapshots:
     dependencies:
       chevrotain: 6.5.0
       tiny-emitter: 2.1.0
-    optional: true
 
   ignore@5.3.2: {}
 
@@ -5546,8 +5547,7 @@ snapshots:
       get-proto: 1.0.1
       which-builtin-type: 1.2.1
 
-  regexp-to-ast@0.4.0:
-    optional: true
+  regexp-to-ast@0.4.0: {}
 
   regexp.prototype.flags@1.5.4:
     dependencies:
@@ -5813,8 +5813,7 @@ snapshots:
 
   through@2.3.8: {}
 
-  tiny-emitter@2.1.0:
-    optional: true
+  tiny-emitter@2.1.0: {}
 
   tinyexec@1.0.1: {}
 

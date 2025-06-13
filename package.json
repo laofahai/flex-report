@@ -31,6 +31,7 @@
     "cmdk": "^1.1.1",
     "generated": "link:@/generated",
     "handsontable": "^15.3.0",
+    "hyperformula": "^3.0.0",
     "lodash-es": "^4.17.21",
     "lucide-react": "^0.514.0",
     "next": "15.3.3",

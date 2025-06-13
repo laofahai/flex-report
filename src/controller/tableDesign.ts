@@ -24,7 +24,8 @@ export async function getTableDesignById(id: string): Promise<TableDesign | null
     ...data,
     schema: {
       ...(typeof data.schema === 'object' && data.schema !== null ? data.schema : {}),
-      columns: (data.schema as any)?.columns || []
+      columns: (data.schema as any)?.columns || [],
+      mergeCells: (data.schema as any)?.mergeCells || [],
     },
     createdAt: new Date(data.createdAt),
     updatedAt: new Date(data.updatedAt),

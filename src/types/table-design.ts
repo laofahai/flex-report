@@ -24,7 +24,15 @@ export const TableDesignSchema = z.object({
   name: z.string(),
   schema: z.object({
     rows: z.array(ExcelDesignerRowSchema),
-    columns: z.array(ExcelDesignerColumnSchema)
+    columns: z.array(ExcelDesignerColumnSchema),
+    mergeCells: z.array(
+      z.object({
+        row: z.number(),
+        col: z.number(),
+        rowspan: z.number().optional(),
+        colspan: z.number().optional()
+      })
+    )
   }),
   ...BaseTableZod
 });

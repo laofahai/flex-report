@@ -28,6 +28,7 @@ export function ExcelDesigner() {
         { type: 'normal', cells: Array.from({length: initialColumnsLength}, () => ({value: ''})) as ExcelDesignerCell[] },
       ],
       columns: Array.from({ length: initialColumnsLength }, (_, idx) => ({ width: initialColumnWidth })),
+      mergeCells: []
     }
   });
   const [loading, setLoading] = useState(true);
@@ -219,6 +220,15 @@ export function ExcelDesigner() {
                   };
                 });
               })
+            }}
+            onUpdateMergeCells={(mergedCells: any[]) => {
+              setTableDesign(prev => ({
+                ...prev,
+                schema: {
+                  ...prev.schema,
+                  mergeCells: mergedCells
+                }
+              }));
             }}
           />
         </div>
