@@ -15,18 +15,17 @@ model DataSource {
   id        String   @id @default(uuid())
   name      String
   type      String
-  config    String // 可存储 JSON 字符串或其他配置
-  schema    Json? // 新增字段，存储解析后的结构，改为Json类型
-  // 你可以在 TypeScript 里定义 DataSourceSchema 类型来约束 schema 字段结构
+  config    String
+  schema    Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model TableDesign {
   id           String   @id @default(uuid())
-  dataSourceId String
+  dataSourceId String?
   name         String
-  schema       Json // JSON: { rows: TableRow[] }，改为Json类型
+  schema       Json
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

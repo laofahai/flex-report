@@ -22,6 +22,10 @@ export async function getTableDesignById(id: string): Promise<TableDesign | null
   if (!data) return null;
   return TableDesignSchema.parse({
     ...data,
+    schema: {
+      ...(data.schema || {}),
+      columns: data.schema?.columns || []
+    },
     createdAt: new Date(data.createdAt),
     updatedAt: new Date(data.updatedAt),
   });

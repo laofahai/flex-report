@@ -1,4 +1,4 @@
-import { getDataSources } from '@/controller/datasource';
+import { getDataSourceById, getDataSources } from '@/controller/datasource'
 import { notFound } from 'next/navigation';
 import JsonConfig from '../../config/json/json-config';
 
@@ -7,9 +7,7 @@ export default async function DataSourceEditPage({ params }: { params: Promise<{
   const {id} = await params;
 
 
-  const dataSources = await getDataSources();
-  const ds = dataSources.find(d => d.id === id);
-  if (!ds) return notFound();
+  const ds = await getDataSourceById(id);
 
   let content = null;
   if (ds.type === 'JSON') {

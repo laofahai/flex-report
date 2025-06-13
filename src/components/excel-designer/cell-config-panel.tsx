@@ -9,12 +9,13 @@ import { useForm } from 'react-hook-form';
 import type { ExcelDesignerCell, ExcelDesignerRow } from '@/types/table-design';
 import type { TableDesign } from '@/types/table-design';
 import { getDataSourceById } from '@/controller/datasource'
-import { SchemaField } from '@/controller/schema'
 import { DataSourceField } from '@/types/datasource-schema'
 import { Separator } from '@/components/ui/separator'
 import { Command, CommandInput, CommandItem, CommandList, CommandEmpty } from '@/components/ui/command';
 import { Popover as ShadPopover, PopoverContent as ShadPopoverContent, PopoverTrigger as ShadPopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label'
+import { ChevronDown } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 export interface CellConfigPanelProps {
   open: boolean;
@@ -25,9 +26,8 @@ export interface CellConfigPanelProps {
   onClose: () => void;
   onChange?: (cell: ExcelDesignerCell) => void;
   datasourceId?: string;
-  tableDesign?: TableDesign;
+  tableDesign: TableDesign;
   currentRow?: ExcelDesignerRow;
-  getDatasourceIdByRow?: (row: ExcelDesignerRow) => string | undefined;
 }
 
 export const CellConfigPanel: React.FC<CellConfigPanelProps> = ({
@@ -40,7 +40,7 @@ export const CellConfigPanel: React.FC<CellConfigPanelProps> = ({
   onChange,
   datasourceId,
   currentRow,
-  getDatasourceIdByRow,
+  tableDesign,
 }) => {
   const anchorRef = useRef<HTMLDivElement>(null);
   // 锚点div样式，定位到cell正下方
@@ -74,6 +74,7 @@ export const CellConfigPanel: React.FC<CellConfigPanelProps> = ({
   const [localCell, setLocalCell] = React.useState<ExcelDesignerCell>(cell || { value: '' });
   const [showVariable, setShowVariable] = React.useState(false);
   const [search, setSearch] = React.useState('');
+  const [fieldSelectOpen, setFieldSelectOpen] = React.useState(false);
 
   React.useEffect(() => {
     setLocalCell(cell || { value: '' });
@@ -85,30 +86,20 @@ export const CellConfigPanel: React.FC<CellConfigPanelProps> = ({
     else setShowVariable(false);
   }, [cell]);
 
-  // datasourceId 优先用 currentRow + getDatasourceIdByRow 查
-  const effectiveDatasourceId = React.useMemo(() => {
-    if (getDatasourceIdByRow && currentRow) {
-      return getDatasourceIdByRow(currentRow) || datasourceId;
-    }
-    return datasourceId;
-  }, [getDatasourceIdByRow, currentRow, datasourceId]);
-
   // variableOptions 由 tableDesign/effectiveDatasourceId 推导（异步获取）
   const [variableOptions, setVariableOptions] = React.useState<DataSourceField[]>([]);
 
   React.useEffect(() => {
-    if (!effectiveDatasourceId) {
+    if (!tableDesign.dataSourceId) {
       setVariableOptions([]);
       return;
     }
-    getDataSourceById(effectiveDatasourceId).then(ds => {
-      console.log(ds)
-      if (ds?.schema) setVariableOptions(ds.schema as any);
-      else setVariableOptions([]);
+    getDataSourceById(tableDesign.dataSourceId).then(ds => {
+      setVariableOptions(JSON.parse(ds.schema?.toString() || "[]") as DataSourceField[]);
     }).catch(err => {
       console.log(err)
     });
-  }, [effectiveDatasourceId]);
+  });
 
   // react-hook-form
   const form = useForm({
@@ -125,19 +116,57 @@ export const CellConfigPanel: React.FC<CellConfigPanelProps> = ({
     onClose();
   });
 
+  const handleFieldUpdate = (field: any, opt: DataSourceField) => {
+    field.onChange(opt.id);
+    // update localCell
+    setLocalCell(prev => ({
+      ...prev,
+      variable: opt.id,
+      value: `$\{${opt.label || opt.id}\}`
+    }));
+    setFieldSelectOpen(false);
+  }
+
+  // 递归渲染字段和子字段
+  const renderFieldOptions = (field: DataSourceField, fieldHandler: any, search: string, level = 0) => {
+    const match = !search || (field.label?.includes(search) || field.id?.toLowerCase().includes(search.toLowerCase()));
+    const children = Array.isArray(field.children) ? field.children : [];
+    return (
+      <React.Fragment key={field.id}>
+        {match && (
+          <CommandItem
+            value={field.id}
+            onSelect={() => {
+              handleFieldUpdate(fieldHandler, field)
+            }}
+            style={{ paddingLeft: 16 + level * 16 }}
+          >
+            {field.label || field.id}
+            {field.label && (
+              <span className={"text-foreground border-l border-l-gray-200 pl-2"}>
+                {field.id}
+              </span>
+            )}
+          </CommandItem>
+        )}
+        {children.map((child: any) => renderFieldOptions(child, fieldHandler, search, level + 1))}
+      </React.Fragment>
+    );
+  }
+
   return (
     <Popover open={open} onOpenChange={open => { if (!open) onClose(); }}>
       <PopoverTrigger asChild>
         <div ref={anchorRef} style={style} />
       </PopoverTrigger>
-      <PopoverContent side="bottom" align="start" style={{ minWidth: 320 }}>
+      <PopoverContent side="bottom" align="start" className={"z-999"} style={{ minWidth: 320 }}>
         <div className={"flex justify-between items-center"}>
           <div className="font-semibold flex-1 flex gap-2 items-center">
-            {cellLabel}
+            <Badge variant={"secondary"} className={"text-base"}>{cellLabel}</Badge>
             <div className="text-xs text-muted-foreground">Row: {row}, Col: {col}</div>
           </div>
           <div className={"flex gap-2 items-center"}>
-            <Switch checked={showVariable} id="use-dynamic-field"  onCheckedChange={v => { setShowVariable(v);
+            <Switch checked={showVariable} id="use-dynamic-field" disabled={!tableDesign.dataSourceId}  onCheckedChange={v => { setShowVariable(v);
               if (!v) setLocalCell({ ...localCell, variable: '', value: '' });
             }} />
             <Label htmlFor="use-dynamic-field">字段</Label>
@@ -146,69 +175,32 @@ export const CellConfigPanel: React.FC<CellConfigPanelProps> = ({
         </div>
         <Separator className={"my-4"} />
         <Form {...form}>
-          <form onSubmit={handleConfirm} className="space-y-2">
-            {showVariable ? (
-              <div className="space-y-1">
-                <FormField
-                  control={form.control}
-                  name="variable"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center gap-2 w-full">
-                      <FormLabel className="text-sm min-w-[48px] text-right pr-2">字段</FormLabel>
-                      <FormControl className="flex-1 min-w-0">
-                        <ShadPopover>
-                          <ShadPopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" className="w-[230px] text-xs justify-between overflow-hidden text-ellipsis">
-                              {variableOptions.find(opt => opt.value === field.value)?.label || '请选择字段'}
-                            </Button>
-                          </ShadPopoverTrigger>
-                          <ShadPopoverContent align="start" className="p-0">
-                            <Command>
-                              <CommandInput placeholder="搜索字段..." value={search} onValueChange={setSearch} className="text-xs" />
-                              <CommandList>
-                                <CommandEmpty>无匹配字段</CommandEmpty>
-                                {variableOptions.filter(opt => !search || opt.label.includes(search) || opt.value.includes(search)).map(opt => (
-                                  <CommandItem
-                                    key={opt.value}
-                                    value={opt.value}
-                                    onSelect={() => {
-                                      field.onChange(opt.value);
-                                    }}
-                                    className="text-xs"
-                                  >
-                                    {opt.label}
-                                  </CommandItem>
-                                ))}
-                              </CommandList>
-                            </Command>
-                          </ShadPopoverContent>
-                        </ShadPopover>
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="value"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center gap-2 w-full">
-                      <FormLabel className="text-sm min-w-[48px] text-right pr-2">内容</FormLabel>
-                      <FormControl className="flex-1">
-                        <Input className="mt-2" placeholder="单元格内容" {...field} readOnly />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            ) : (
+          <div className={"space-y-4"}>
+            {showVariable && (
               <FormField
                 control={form.control}
-                name="value"
+                name="variable"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center gap-2 w-full">
-                    <FormLabel className="text-sm min-w-[48px] text-right pr-2">内容</FormLabel>
-                    <FormControl className="flex-1">
-                      <Input placeholder="单元格内容" {...field} />
+                    <FormLabel className="text-sm min-w-[48px] text-right pr-2">字段</FormLabel>
+                    <FormControl className="flex-1 min-w-0">
+                      <ShadPopover open={fieldSelectOpen} onOpenChange={setFieldSelectOpen}>
+                        <ShadPopoverTrigger asChild>
+                          <Button variant="outline" role="combobox" className="w-[230px] justify-between overflow-hidden text-ellipsis" disabled={!tableDesign.dataSourceId}>
+                            {field.value ? variableOptions.find(opt => opt.id === field.value)?.label || field.value : '请选择字段'}
+                            <ChevronDown />
+                          </Button>
+                        </ShadPopoverTrigger>
+                        <ShadPopoverContent align="start" className="p-0 z-1000">
+                          <Command>
+                            <CommandInput placeholder="搜索字段..." value={search} onValueChange={setSearch} />
+                            <CommandList>
+                              <CommandEmpty>无匹配字段</CommandEmpty>
+                              {variableOptions && variableOptions.length > 0 && variableOptions.map(opt => renderFieldOptions(opt, field, search))}
+                            </CommandList>
+                          </Command>
+                        </ShadPopoverContent>
+                      </ShadPopover>
                     </FormControl>
                   </FormItem>
                 )}
@@ -216,30 +208,43 @@ export const CellConfigPanel: React.FC<CellConfigPanelProps> = ({
             )}
             <FormField
               control={form.control}
+              name="value"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center gap-2 w-full">
+                  <FormLabel className="text-sm min-w-[48px] text-right">内容</FormLabel>
+                  <FormControl className="flex-1">
+                    <Input readOnly={showVariable} placeholder="请输入内容" {...field} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="expand"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center gap-2 w-full">
-                  <FormLabel className="text-sm min-w-[48px] text-right pr-2">扩展</FormLabel>
+                  <FormLabel className="text-sm min-w-[48px] text-right">扩展</FormLabel>
                   <FormControl className="flex-1">
                     <Select value={field.value || 'none'} onValueChange={field.onChange}>
-                      <SelectTrigger className="w-full h-8 text-xs">
+                      <SelectTrigger className="w-full ">
                         <SelectValue placeholder="请选择扩展" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none" className="text-xs">无</SelectItem>
-                        <SelectItem value="col" className="text-xs">跨列</SelectItem>
-                        <SelectItem value="row" className="text-xs">跨行</SelectItem>
+                      <SelectContent className={"z-1000"}>
+                        <SelectItem value="none" className="">无</SelectItem>
+                        <SelectItem value="col" className="">跨列</SelectItem>
+                        <SelectItem value="row" className="">跨行</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormControl>
                 </FormItem>
               )}
             />
-            <div className="flex gap-2 justify-between mt-4">
+            <Separator className={"my-6"} />
+            <div className="flex gap-2 justify-between">
               <Button size="sm" variant="outline" type="button" onClick={onClose}>取消</Button>
               <Button size="sm" type="submit">确认</Button>
             </div>
-          </form>
+          </div>
         </Form>
       </PopoverContent>
     </Popover>

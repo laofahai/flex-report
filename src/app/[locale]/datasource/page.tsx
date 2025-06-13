@@ -13,23 +13,20 @@ import {
   SelectItem
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { createDataSource, getDataSources, deleteDataSource } from '@/controller/datasource';
 import { Pencil, Trash2, Ruler } from "lucide-react";
-
-interface DataSource {
-  id: string;
-  name: string;
-  type: string;
-}
+import { DataSourceType } from '@/types/datasource-schema'
 
 export default function DataSourcePage() {
   const t = useTranslations("DataSource");
-  const [dataSources, setDataSources] = useState<DataSource[]>([]);
+  const [dataSources, setDataSources] = useState<DataSourceType[]>([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", type: "JSON" });
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const params = useParams();
+  const locale = params.locale as string;
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -79,13 +76,10 @@ export default function DataSourcePage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => router.push(`datasource/${ds.id}/edit`)}>
+                  <Button size="sm" variant="outline" onClick={() => router.push(`./datasource/${ds.id}/edit`)}>
                     <Pencil className="w-4 h-4" />
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => router.push(`datasource/${ds.id}/design`)}>
-                    <Ruler className="w-4 h-4" />
-                  </Button>
-                  <Button size="sm" variant="destructive" onClick={() => setDeleteId(ds.id)}>
+                  <Button size="sm" variant="destructive" onClick={() => setDeleteId(ds.id!)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -127,7 +121,7 @@ export default function DataSourcePage() {
           <DialogHeader>
             <DialogTitle>{t('delete')}</DialogTitle>
           </DialogHeader>
-          <div>{t('delete_confirm')}</div>
+          <div>{t('deleteConfirm')}</div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteId(null)}>{t('cancel')}</Button>
             <Button variant="destructive" disabled={deleteLoading} onClick={() => deleteId && handleDelete(deleteId)}>

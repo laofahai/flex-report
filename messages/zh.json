@@ -6,11 +6,16 @@
     "type": "类型",
     "name": "数据源名称",
     "config": "配置/内容 (如 JSON 字符串)",
-    "save": "保存"
+    "save": "保存",
+    "delete": "删除",
+    "deleteConfirm": "确定要删除这个数据源吗？此操作无法撤销。",
+    "cancel": "取消"
   },
   "NavMain": {
     "platform": "平台",
-    "datasource": "数据源管理"
+    "datasource": "数据源管理",
+    "dataDict": "数据字典",
+    "excel": "Excel"
   }
 }
 

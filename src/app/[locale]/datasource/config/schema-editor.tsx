@@ -125,6 +125,21 @@ export default function SchemaEditor({
     setAddFieldKey("");
   }
 
+  // 局部 state 缓存 input
+  function useFieldInput(initial: string, onCommit: (val: string) => void) {
+    const [value, setValue] = React.useState(initial);
+    React.useEffect(() => { setValue(initial); }, [initial]);
+    const commit = React.useCallback(() => {
+      if (value !== initial) onCommit(value);
+    }, [value, initial, onCommit]);
+    return {
+      value,
+      onChange: (e: any) => setValue(e.target.value),
+      onBlur: commit,
+      onKeyDown: (e: any) => { if (e.key === 'Enter') commit(); },
+    };
+  }
+
   const columns = React.useMemo<ColumnDef<any, any>[]>(
     () => [
       {
@@ -132,6 +147,8 @@ export default function SchemaEditor({
         header: 'Field / Label',
         cell: ({ row }) => {
           const f = row.original;
+          const nameInput = useFieldInput(f.name, val => onFieldChange(f.id, 'name', val));
+          const labelInput = useFieldInput(f.label ?? '', val => onFieldChange(f.id, 'label', val));
           return (
             <div className="flex items-center gap-2" style={{ paddingLeft: `${row.depth * 20}px` }}>
               {/* Always reserve space for expander */}
@@ -149,18 +166,15 @@ export default function SchemaEditor({
                 <span className="inline-block w-8 mr-1" />
               )}
               <Input
-                value={f.name}
-                onChange={e => onFieldChange(f.id, 'name', e.target.value)}
+                {...nameInput}
                 className="!text-xs w-32"
                 placeholder="Field name"
               />
               <Input
-                value={f.label ?? ''}
-                onChange={e => onFieldChange(f.id, 'label', e.target.value)}
+                {...labelInput}
                 className="!text-xs flex-1"
                 placeholder="Label (optional)"
               />
-
               <Button
                 type="button"
                 size="icon"
@@ -220,12 +234,12 @@ export default function SchemaEditor({
         header: 'Filterable',
         cell: ({ row }) => {
           const f = row.original;
+          const targetFieldInput = useFieldInput(f.targetField ?? f.id, val => onFieldChange(f.id, 'targetField', val));
           return (
             <div className="flex items-center gap-2 w-full">
               {f.filterType && f.filterType !== 'none' && (
                 <Input
-                  value={f.targetField ?? f.id}
-                  onChange={e => onFieldChange(f.id, 'targetField', e.target.value)}
+                  {...targetFieldInput}
                   className="!text-xs flex-1"
                   placeholder="Target field"
                 />

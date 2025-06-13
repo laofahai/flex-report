@@ -1,20 +1,11 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
 import '../globals.css'
 import { hasLocale, NextIntlClientProvider, useMessages } from 'next-intl'
 import MainLayout from '../layouts/main-layout'
 import { routing } from '@/i18n/routing'
 import { notFound } from 'next/navigation'
+import React from 'react'
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-})
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-})
 
 export const metadata: Metadata = {
   title: 'Create Next App',
@@ -26,19 +17,20 @@ export default async function RootLayout({
   params,
 }: {
   children: React.ReactNode
-  params: Promise<{locale: string}>;
+  params: Promise<{ locale: string }>
 }) {
-  const {locale} = await params;
+  const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) {
     notFound();
   }
+  // Dynamically import messages for the current locale
   return (
     <html lang={locale}>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <NextIntlClientProvider>
+      <body className={`antialiased`}>
+        <NextIntlClientProvider locale={locale}>
           <MainLayout>{children}</MainLayout>
         </NextIntlClientProvider>
       </body>
     </html>
-  )
+  );
 }

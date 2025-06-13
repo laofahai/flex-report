@@ -9,6 +9,8 @@ import {
   MenubarContent,
   MenubarItem,
 } from '@/components/ui/menubar'
+import { Eye } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface TableToolbarProps {
   hotRef: React.RefObject<any>;
@@ -24,7 +26,6 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({ hotRef, selectionRan
     const hot = hotRef.current.hotInstance;
     if (!hot) return;
     selectionRange?.forEach(selected => {
-      console.log(selected, 111)
       for (let row = selected.from.row; row <= selected.to.row; row++) {
         for (let col = selected.from.col; col <= selected.to.col; col++) {
           const meta = hot.getCellMeta(row, col);
@@ -51,8 +52,17 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({ hotRef, selectionRan
     // mergePlugin.merge(selected);
   };
 
+  const handleShowPreview = () => {}
+
   return (
     <Menubar>
+      <MenubarMenu>
+        <MenubarTrigger asChild>
+          <Button variant={"ghost"} onClick={handleShowPreview}>
+            <Eye />
+          </Button>
+        </MenubarTrigger>
+      </MenubarMenu>
       <MenubarMenu>
         <MenubarTrigger>字体</MenubarTrigger>
         <MenubarContent className={zIndex}>
