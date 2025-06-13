@@ -6,7 +6,6 @@ import { AutoColumnSize, ManualColumnResize, ManualRowResize, ContextMenu } from
 import { ExcelDesignerRow, TableDesign } from '@/types/table-design'
 import { TableToolbar } from '@/components/excel-designer/excel-toolbar'
 import { CellConfigPanel } from './cell-config-panel';
-import { CellMeta } from 'handsontable/settings'
 
 // @ts-ignore
 Handsontable.plugins.registerPlugin('ManualColumnResize', ManualColumnResize)
@@ -99,9 +98,6 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
     );
   };
 
-  const horizontalAlignCls: string[] = ['htLeft', 'htCenter', 'htRight'];
-  const verticalAlignCls: string[] = ['htTop', 'htMiddle', 'htBottom'];
-
   return (
     <div className="relative overflow-x-auto w-full" style={{ position: 'relative' }}>
       <div className={"py-2"}>
@@ -161,7 +157,7 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
           }
         }}
         cells={function(row, col, prop): any {
-          const cellProperties: CellMeta = {};
+          const cellProperties: any = {};
           if (tableDesign.schema.rows[row]?.type === 'loop') {
             cellProperties.className = (cellProperties.className || '') + ' !bg-yellow-50';
           }

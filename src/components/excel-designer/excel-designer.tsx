@@ -92,7 +92,6 @@ export function ExcelDesigner() {
 
   return (
     <div className="w-full">
-      {JSON.stringify(tableDesign.schema)}
       <div className="flex items-center justify-between mb-4 w-full">
         <h1 className="text-2xl font-bold flex-shrink-0 flex-1/2">
           <Input

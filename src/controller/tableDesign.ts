@@ -23,8 +23,8 @@ export async function getTableDesignById(id: string): Promise<TableDesign | null
   return TableDesignSchema.parse({
     ...data,
     schema: {
-      ...(data.schema || {}),
-      columns: data.schema?.columns || []
+      ...(typeof data.schema === 'object' && data.schema !== null ? data.schema : {}),
+      columns: (data.schema as any)?.columns || []
     },
     createdAt: new Date(data.createdAt),
     updatedAt: new Date(data.updatedAt),
@@ -35,7 +35,7 @@ export async function createTableDesign({ name, dataSourceId, schema }: TableDes
   const data = await prisma.tableDesign.create({
     data: {
       name,
-      dataSourceId,
+      dataSourceId: dataSourceId!,
       schema,
     },
   });
