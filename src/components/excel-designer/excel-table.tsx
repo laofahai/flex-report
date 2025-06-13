@@ -170,7 +170,6 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
             cellProperties.className = (cellProperties.className || '') + ` ht${hAlign.charAt(0).toUpperCase() + hAlign.slice(1)}`;
           }
 
-          console.log(cellProperties)
           cellProperties.width = tableDesign.schema.columns?.[col]?.width || 120; // 列宽支持
           return cellProperties;
         }}
