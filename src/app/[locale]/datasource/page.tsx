@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { createDataSource, getDataSources, deleteDataSource } from '@/actions/datasource';
+import { createDataSource, getDataSources, deleteDataSource } from '@/controller/datasource';
 import { Pencil, Trash2, Ruler } from "lucide-react";
 
 interface DataSource {
@@ -60,7 +60,7 @@ export default function DataSourcePage() {
   };
 
   return (
-    <div className="py-8">
+    <>
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
         <Button onClick={() => setOpen(true)}>{t("add")}</Button>
@@ -137,7 +137,7 @@ export default function DataSourcePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
 

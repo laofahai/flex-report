@@ -27,7 +27,18 @@ export function NavMain({
       icon: Database,
       isActive: false,
     },
-    // 可继续添加更多菜单项
+    {
+      title: t('dataDict', { default: 'Data Dictionary' }),
+      url: `/${locale}/data-dict`,
+      icon: Database,
+      isActive: false,
+    },
+    {
+      title: t('excel', { default: 'Excel Designer' }),
+      url: `/${locale}/excel`,
+      icon: Database,
+      isActive: false,
+    }
   ]
   return (
     <SidebarGroup>

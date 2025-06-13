@@ -1,6 +1,6 @@
-import { getDataSources } from '@/actions/datasource';
+import { getDataSources } from '@/controller/datasource';
 import { notFound } from 'next/navigation';
-import JsonConfig from '../../config/json-config';
+import JsonConfig from '../../config/json/json-config';
 
 export default async function DataSourceEditPage({ params }: { params: Promise<{ id: string }> }) {
 
@@ -21,10 +21,10 @@ export default async function DataSourceEditPage({ params }: { params: Promise<{
   }
 
   return (
-    <div className="py-8">
-      <h1 className="text-2xl font-bold mb-4">Edit Data Source: {ds.name}</h1>
+    <>
+      <h1 className="text-2xl font-bold ">Edit Data Source: {ds.name}</h1>
       {content}
-    </div>
+    </>
   );
 }
 
