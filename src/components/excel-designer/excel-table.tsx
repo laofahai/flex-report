@@ -127,6 +127,7 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
         manualColumnFreeze={true}
         autoWrapRow={true}
         autoWrapCol={true}
+        licenseKey="non-commercial-and-evaluation"
         mergeCells={tableDesign.schema.mergeCells as any[] || []}
         formulas={
           {
@@ -240,7 +241,6 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
           cellProperties.width = tableDesign.schema.columns?.[col]?.width || 120; // 列宽支持
           return cellProperties;
         }}
-        licenseKey="non-commercial-and-evaluation"
         afterSelectionEnd={(row: number, column: number, row2: number, column2: number) => {
           const hot = hotRef.current?.hotInstance;
           const selectedRanges = hot?.getSelectedRange(); // 支持多块区域

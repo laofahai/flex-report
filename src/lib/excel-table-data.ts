@@ -2,11 +2,16 @@ import { DatasourceData } from '@/types/datasource-data'
 import { TableDesign } from '@/types/table-design'
 import { get } from 'lodash-es'
 
+interface HandleDataExpandResult {
+  merges: TableDesign["schema"]["mergeCells"];
+  data: any[][];
+}
+
 export const handleDataExpand = (
   tableSchema: TableDesign["schema"],
   plainData: any[][]
-) => {
-  const merges: [number, number, number, number][] = [];
+): HandleDataExpandResult => {
+  const merges: TableDesign["schema"]["mergeCells"] = [];
   const data = plainData.map(row => [...row]); // 浅拷贝数据
 
   // 构建行类型映射：判断每行是普通行还是循环行
@@ -15,7 +20,7 @@ export const handleDataExpand = (
 
   // 遍历表结构定义，构建行类型映射
   for (const rowDef of tableSchema.rows) {
-    if (rowDef.isLoopRow) {
+    if (rowDef.type === 'loop') {
       // 循环行：计算该循环行生成的行数
       const loopRowCount = plainData.length - tableSchema.rows.length + 1;
       for (let i = 0; i < loopRowCount; i++) {
@@ -35,7 +40,7 @@ export const handleDataExpand = (
     // 查找当前数据行对应的配置行
     for (let i = 0; i < tableSchema.rows.length; i++) {
       const rowDef = tableSchema.rows[i];
-      const rowsGenerated = rowDef.isLoopRow
+      const rowsGenerated = rowDef.type === 'loop'
         ? plainData.length - tableSchema.rows.length + 1
         : 1;
 
@@ -58,8 +63,8 @@ export const handleDataExpand = (
   // 1. 行合并（纵向）：只处理循环行
   for (let colIdx = 0; colIdx < tableSchema.columns.length; colIdx++) {
     for (let rowIdx = 0; rowIdx < data.length; rowIdx++) {
-      // 跳过普通行
-      if (rowTypes[rowIdx] === "normal") continue;
+      // 只对循环行做行合并
+      if (rowTypes[rowIdx] !== "loop") continue;
 
       const cellConfig = getCellConfig(rowIdx, colIdx);
       const cellValue = data[rowIdx][colIdx];
@@ -91,7 +96,12 @@ export const handleDataExpand = (
 
       // 找到可合并区域
       if (mergeCount > 1) {
-        merges.push([rowIdx, colIdx, mergeCount, 1]);
+        merges.push({
+          row: rowIdx,
+          col: colIdx,
+          rowspan: mergeCount,
+          colspan: 1
+        });
 
         // 清空被合并单元格（保留第一个）
         for (let i = rowIdx + 1; i < rowIdx + mergeCount; i++) {
@@ -106,8 +116,8 @@ export const handleDataExpand = (
 
   // 2. 列合并（横向）：只处理循环行
   for (let rowIdx = 0; rowIdx < data.length; rowIdx++) {
-    // 跳过普通行
-    if (rowTypes[rowIdx] === "normal") continue;
+    // 只对循环行做列合并
+    if (rowTypes[rowIdx] !== "loop") continue;
 
     for (let colIdx = 0; colIdx < tableSchema.columns.length; colIdx++) {
       // 跳过已合并的单元格
@@ -140,7 +150,13 @@ export const handleDataExpand = (
 
       // 找到可合并区域
       if (mergeCount > 1) {
-        merges.push([rowIdx, colIdx, 1, mergeCount]);
+        //rowIdx, colIdx, 1, mergeCount
+        merges.push({
+          row: rowIdx,
+          col: colIdx,
+          rowspan: 1,
+          colspan: mergeCount
+        });
 
         // 清空被合并单元格（保留第一个）
         for (let j = colIdx + 1; j < colIdx + mergeCount; j++) {
@@ -152,6 +168,9 @@ export const handleDataExpand = (
       }
     }
   }
+
+  // 3. 普通行的合并（如果有需要，可以在这里实现）
+  // 当前只对循环行做合并，普通行不做合并
 
   return { merges, data };
 };
@@ -218,10 +237,6 @@ export const toExcelTableData = (raw: DatasourceData, tableSchema: TableDesign["
   })
 
 
-  const res = handleDataExpand(tableSchema, result)
-  console.log(res)
-  // console.log(2, result, tableSchema)
-  // test();
-
-  return result;
+  return handleDataExpand(tableSchema, result)
 }
+

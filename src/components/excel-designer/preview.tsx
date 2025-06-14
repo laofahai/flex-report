@@ -1,12 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import Handsontable from 'handsontable';
 import { HotTable } from '@handsontable/react';
 import { getTableDesignById } from '@/repository/table-design';
 import { fetchJsonData } from '@/repository/datasource-data'
 import { TableDesign } from '@/types/table-design'
 import { toExcelTableData } from '@/lib/excel-table-data'
-// 你需要实现 getDataSourceRows 以支持分页获取数据
-// import { getDataSourceRows } from '@/repository/datasource';
+import { HyperFormula } from 'hyperformula'
+import 'handsontable/dist/handsontable.full.min.css';
+import Handsontable from 'handsontable'
+import { AutoColumnSize, AutoRowSize, ContextMenu, ManualColumnResize, ManualRowResize } from 'handsontable/plugins'
+
+// @ts-ignore
+Handsontable.plugins.registerPlugin('AutoColumnSize', AutoColumnSize)
+// @ts-ignore
+Handsontable.plugins.registerPlugin('AutoRowSize', AutoRowSize)
 
 interface PreviewProps {
   tableDesignId: string;
@@ -20,7 +26,12 @@ export function Preview({ tableDesignId }: PreviewProps) {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  const hyperformulaInstance = HyperFormula.buildEmpty({
+    licenseKey: 'internal-use-in-handsontable',
+  });
+
   useEffect(() => {
+    console.log(1)
     async function fetchDesign() {
       setLoading(true);
       const design = await getTableDesignById(tableDesignId);
@@ -35,6 +46,7 @@ export function Preview({ tableDesignId }: PreviewProps) {
   }, [tableDesignId]);
 
   useEffect(() => {
+    console.log(222)
     async function fetchData() {
       if (!tableDesign?.dataSourceId) return;
       setLoading(true);
@@ -44,15 +56,26 @@ export function Preview({ tableDesignId }: PreviewProps) {
       })
 
       const pureData = toExcelTableData(data, tableDesign.schema);
-      console.log(pureData)
-      // TODO: 你需要实现 getDataSourceRows 支持分页
-      // const { rows, total } = await getDataSourceRows(tableDesign.dataSourceId, page, pageSize);
-      // setData(rows);
-      // setTotal(total);
+
+      setTableDesign({
+        ...tableDesign,
+        schema: {
+          ...tableDesign.schema,
+          mergeCells: [
+            ...(tableDesign.schema.mergeCells || []),
+            ...pureData.merges
+          ]
+        }
+      })
+
+      setData(pureData.data)
+
       setLoading(false);
+
+      console.log(tableDesign, 2)
     }
     fetchData();
-  }, [tableDesign, page, pageSize]);
+  }, [tableDesign?.dataSourceId, page, pageSize]);
 
   if (loading) return <div>加载中...</div>;
   if (!tableDesign) return <div>未找到设计</div>;
@@ -63,28 +86,36 @@ export function Preview({ tableDesignId }: PreviewProps) {
   const colHeaders = rows[0]?.cells?.map((cell: any, idx: number) => cell.value || `列${idx+1}`) || [];
 
   return (
-    <div>
+    <div className={"relative"}>
+      {JSON.stringify(tableDesign.schema.mergeCells)}
       <HotTable
-        data={data}
-        colHeaders={colHeaders}
+        data={data?.length > 0 ? data : []} // 默认数据传空时给 [[""]]
+        colHeaders={true}
         rowHeaders={true}
-        width="100%"
-        height="auto"
+        height={`calc(100vh - 200px)`} // 根据需要调整高度
+        colWidths={120} // ✅ 建议给默认列宽
+        rowHeights={tableDesign.schema.rows.map(row => row.height || 30)} // 行高支持
+        manualRowMove={true}
+        manualColumnMove={true}
+        manualColumnResize={true}
+        manualRowResize={true}
+        manualColumnFreeze={true}
+        autoWrapRow={true}
+        autoWrapCol={true}
         licenseKey="non-commercial-and-evaluation"
-        // 你可以根据 tableDesign.schema.columns 设置列宽
-        columns={columns.map((col: any) => ({ width: col.width || 120 }))}
-        readOnly
+        mergeCells={tableDesign.schema.mergeCells as any[] || []}
+        formulas={
+          {
+            engine: hyperformulaInstance,
+            sheetName: 'Sheet1',
+          }
+        }
         stretchH="all"
       />
-      {/* 分页控件 */}
-      <div style={{ marginTop: 16 }}>
-        <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>上一页</button>
-        <span style={{ margin: '0 8px' }}>第 {page} 页</span>
-        <button disabled={data.length < pageSize} onClick={() => setPage(p => p + 1)}>下一页</button>
-      </div>
     </div>
   );
 }
 
 export default Preview;
+
 
