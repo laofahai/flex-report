@@ -34,7 +34,6 @@ export async function getDataSources(): Promise<DataSourceType[]> {
   const result = await prisma.dataSource.findMany({
     orderBy: { createdAt: 'desc' },
   });
-  console.log(result)
   return result.map((item: any) => DataSourceSchema.parse(item));
 }
 

@@ -48,14 +48,11 @@ export default function JsonConfig({ dataSource }: { dataSource: DataSourceType 
       const raw: any = dataSource.schema;
       // If already has id, return as is; else, convert
       if (raw?.fields.length > 0 && raw.fields[0].id) return raw;
-      // Only pass string keys to convertRowKeysToSchemaFields
-      const filtered = Object.fromEntries(
-        Object.entries(Array.isArray(raw.fields) && raw.fields.length === 1 ? raw[0] : raw)
-          .filter(([k, v]) => typeof k === 'string')
-      );
-      return convertRowKeysToSchemaFields(filtered);
+      return {
+        fields: convertRowKeysToSchemaFields(raw.fields || [])
+      };
     } catch {
-      return [];
+      return {fields: []};
     }
   });
   const [fetching, setFetching] = useState(false);
@@ -168,44 +165,48 @@ export default function JsonConfig({ dataSource }: { dataSource: DataSourceType 
 
   // Helper to update nested schema fields and handle delete by id
   function handleSchemaFieldChangePath(id: string, key: string, value: string) {
-    if (key === 'replace') {
-      // value is a JSON stringified array of fields
-      try {
-        const arr = JSON.parse(value);
-        if (Array.isArray(arr)) {
+    switch (key) {
+      case 'replace':
+        try {
+          const arr = JSON.parse(value);
           setSchema({
-            ...schema,
-            fields: arr
-          });
+            ...arr,
+            fields: arr.fields
+          })
+          return;
+        } catch (e: any) {
+          console.error('Invalid JSON for replace:', e);
           return;
         }
-      } catch {}
-    }
-    function update(schema: DataSourceSchema): DataSourceSchema {
-      return {
-        ...schema,
-        fields: schema.fields
-          .map(f => {
-            if (f.id === id) {
-              if (key === 'delete') return undefined;
-              return { ...f, [key]: value };
-            }
-            if (f.children) {
-              const updatedChildren = update({fields: f.children});
-              // If children are all deleted, remove the children property
-              if (updatedChildren.fields?.length === 0) {
-                const { children, ...rest } = f;
-                return rest;
-              }
-              return { ...f, children: updatedChildren };
-            }
-            return f;
-          })
-          .filter((f): f is DataSourceField => Boolean(f))
-      };
     }
 
-    setSchema(prev => update(prev));
+    function update(fields: DataSourceField[]): DataSourceField[] {
+      return  fields
+        .map(f => {
+          if (f.id === id) {
+            if (key === 'delete') return undefined;
+            return { ...f, [key]: value };
+          }
+          if (f.children) {
+            const updatedChildren = update(f.children);
+            // If children are all deleted, remove the children property
+            if (updatedChildren?.length === 0) {
+              const { children, ...rest } = f;
+              return rest;
+            }
+            return { ...f, children: updatedChildren };
+          }
+          return f;
+        })
+        .filter((f): f is DataSourceField => Boolean(f))
+    }
+
+    const updated = update(schema.fields);
+
+    setSchema({
+      ...schema,
+      fields: updated
+    });
   }
 
   const saveSchema = async () => {
@@ -215,6 +216,11 @@ export default function JsonConfig({ dataSource }: { dataSource: DataSourceType 
     setSchemaSaved(true);
     setTimeout(() => setSchemaSaved(false), 1200);
   };
+
+  // Memoize schema and callbacks to avoid unnecessary re-renders
+  const memoizedSchema = React.useMemo(() => schema, [schema]);
+  const memoizedOnFieldChange = React.useCallback(handleSchemaFieldChangePath, [schema]);
+  const memoizedOnSave = React.useCallback(saveSchema, [schema]);
 
   return (
     <div className="flex flex-col md:flex-row gap-4 w-full max-w-none mx-auto ">
@@ -243,9 +249,9 @@ export default function JsonConfig({ dataSource }: { dataSource: DataSourceType 
       <div className="flex-1 min-w-0">
         <Card className="mb-4 p-4">
           <SchemaEditor
-            schema={schema}
-            onFieldChange={handleSchemaFieldChangePath}
-            onSave={saveSchema}
+            schema={memoizedSchema}
+            onFieldChange={memoizedOnFieldChange}
+            onSave={memoizedOnSave}
             saving={schemaSaving}
             saved={schemaSaved}
             onFetchSample={fetchSample}

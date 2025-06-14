@@ -1,13 +1,6 @@
-// Schema utility functions for inferring schema from sample data
-export type SchemaField = {
-  id: string;
-  name: string;
-  label?: string;
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'date';
-  children?: SchemaField[];
-};
+import { DataSourceField } from '@/types/datasource-schema'
 
-export function guessType(value: any): SchemaField['type'] {
+export function guessType(value: any): DataSourceField['type'] {
   if (Array.isArray(value)) return 'array';
   if (value === null) return 'string';
   if (typeof value === 'number') return 'number';
@@ -21,7 +14,7 @@ export function guessType(value: any): SchemaField['type'] {
   return 'string';
 }
 
-export function convertRowKeysToSchemaFields(row: any, parentPath: string = ''): SchemaField[] {
+export function convertRowKeysToSchemaFields(row: any, parentPath: string = ''): DataSourceField[] {
   if (!row || typeof row !== 'object') return [];
   return Object.keys(row).map(key => {
     const value = row[key];

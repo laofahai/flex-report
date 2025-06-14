@@ -280,7 +280,6 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
           }
         }}
         afterRowResize={(newSize, row, isDoubleClick) => {
-          console.log(row, newSize)
           if (typeof onRowHeightChange === 'function') {
             onRowHeightChange(row, newSize);
           }

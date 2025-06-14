@@ -26,6 +26,17 @@ import {
 import { getDictionaries } from "@/repository/dictionary";
 import { DataSourceField, DataSourceSchema, DataSourceFieldSchema, DataSourceFieldSchemaBase } from '@/types/datasource-schema';
 import { toast } from "sonner";
+import { cloneDeep } from 'lodash-es'
+
+interface Props {
+  schema: DataSourceSchema;
+  onFieldChange: (id: string, key: string, value: string) => void;
+  onSave: () => void;
+  saving: boolean;
+  saved: boolean;
+  onFetchSample: () => void;
+  fetching: boolean;
+}
 
 export default function SchemaEditor({
   schema,
@@ -35,15 +46,8 @@ export default function SchemaEditor({
   saved,
   onFetchSample,
   fetching,
-}: {
-  schema: DataSourceSchema;
-  onFieldChange: (id: string, key: string, value: string) => void;
-  onSave: () => void;
-  saving: boolean;
-  saved: boolean;
-  onFetchSample: () => void;
-  fetching: boolean;
-}) {
+}: Props) {
+
   const [expanded, setExpanded] = React.useState<ExpandedState>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteRowId, setDeleteRowId] = useState<string | null>(null);
@@ -53,7 +57,7 @@ export default function SchemaEditor({
 
   useEffect(() => {
     getDictionaries().then((data) => {
-      setDictionaries(data.map((d: any) => ({ id: d.id, name: d.name })));
+      setDictionaries(data);
     });
   }, []);
 
@@ -103,8 +107,9 @@ export default function SchemaEditor({
       return fields;
     }
     // Clone schema deeply
-    const newSchema = JSON.parse(JSON.stringify(schema));
-    addRecursively(newSchema, keys);
+    const newSchema = cloneDeep(schema);
+
+    addRecursively(newSchema.fields, keys);
     onFieldChange("", "replace", JSON.stringify(newSchema)); // Pass array, not object
     toast.success('Field(s) added');
     setAddDialogOpen(false);
@@ -383,4 +388,3 @@ export default function SchemaEditor({
     </>
   );
 }
-

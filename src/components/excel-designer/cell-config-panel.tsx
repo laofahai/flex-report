@@ -98,10 +98,9 @@ export const CellConfigPanel: React.FC<CellConfigPanelProps> = ({
       return;
     }
     getDataSourceById(tableDesign.dataSourceId).then(ds => {
-      const options = JSON.parse(ds.schema?.toString() || "[]") as DataSourceField[];
-      setVariableOptions(options);
+      setVariableOptions(ds.schema?.fields || []);
       setFlattenVariableOptions(
-        flatMap(options, (field: DataSourceField) => field.children ? [field, ...field.children] : [field])
+        flatMap(ds.schema?.fields, (field: DataSourceField) => field.children ? [field, ...field.children] : [field])
       );
     }).catch(err => {
       console.log(err)
