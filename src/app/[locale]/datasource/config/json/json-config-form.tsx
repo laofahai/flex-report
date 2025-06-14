@@ -11,7 +11,6 @@ export const jsonConfigSchema = z.object({
   url: z.string().url({ message: "Must be a valid URL" }),
   totalItemsField: z.string().min(1, "Required"),
   itemsField: z.string().min(1, "Required"),
-  pageField: z.string().optional(),
   pageSizeField: z.string().optional(),
   currentPageField: z.string().optional(),
 });

@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import Handsontable from 'handsontable';
 import { HotTable } from '@handsontable/react';
 import { getTableDesignById } from '@/repository/table-design';
+import { fetchJsonData } from '@/repository/datasource-data'
+import { TableDesign } from '@/types/table-design'
+import { toExcelTableData } from '@/lib/excel-table-data'
 // 你需要实现 getDataSourceRows 以支持分页获取数据
 // import { getDataSourceRows } from '@/repository/datasource';
 
@@ -10,7 +13,7 @@ interface PreviewProps {
 }
 
 export function Preview({ tableDesignId }: PreviewProps) {
-  const [tableDesign, setTableDesign] = useState<any>(null);
+  const [tableDesign, setTableDesign] = useState<TableDesign>();
   const [data, setData] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
@@ -21,6 +24,10 @@ export function Preview({ tableDesignId }: PreviewProps) {
     async function fetchDesign() {
       setLoading(true);
       const design = await getTableDesignById(tableDesignId);
+      if (!design) {
+        setLoading(false);
+        return;
+      }
       setTableDesign(design);
       setLoading(false);
     }
@@ -31,6 +38,13 @@ export function Preview({ tableDesignId }: PreviewProps) {
     async function fetchData() {
       if (!tableDesign?.dataSourceId) return;
       setLoading(true);
+
+      const data = await fetchJsonData({
+        datasourceId: tableDesign.dataSourceId
+      })
+
+      const pureData = toExcelTableData(data, tableDesign.schema);
+      console.log(pureData)
       // TODO: 你需要实现 getDataSourceRows 支持分页
       // const { rows, total } = await getDataSourceRows(tableDesign.dataSourceId, page, pageSize);
       // setData(rows);
