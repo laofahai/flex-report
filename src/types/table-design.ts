@@ -23,6 +23,9 @@ export const TableDesignSchema = z.object({
   dataSourceId: z.string().optional(),
   name: z.string(),
   schema: z.object({
+    // 允许后面的行/列合并超过其上级
+    allowRowMergeBeyondParent: z.boolean().optional(),
+    allowColumnMergeBeyondParent: z.boolean().optional(),
     rows: z.array(ExcelDesignerRowSchema),
     columns: z.array(ExcelDesignerColumnSchema),
     mergeCells: z.array(

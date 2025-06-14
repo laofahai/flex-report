@@ -1,242 +1,266 @@
 import { DatasourceData } from '@/types/datasource-data'
 import { TableDesign } from '@/types/table-design'
 import { get } from 'lodash-es'
+import { DataDictItem, DataSourceField, DataSourceType } from '@/types/datasource-schema'
+import { getDictionaries, getDictionaryByIdIn } from '@/repository/dictionary'
+import { DataDict, DictionaryItem } from '@/types/dictionary-schema'
 
 interface HandleDataExpandResult {
-  merges: TableDesign["schema"]["mergeCells"];
-  data: any[][];
+  merges: TableDesign['schema']['mergeCells']
+  data: any[][]
 }
 
 export const handleDataExpand = (
-  tableSchema: TableDesign["schema"],
+  tableSchema: TableDesign['schema'],
   plainData: any[][]
 ): HandleDataExpandResult => {
-  const merges: TableDesign["schema"]["mergeCells"] = [];
-  const data = plainData.map(row => [...row]); // 浅拷贝数据
+  const merges: TableDesign['schema']['mergeCells'] = []
+  const data = plainData.map((row) => [...row])
+  const rowCount = tableSchema.rows.length
+  const colCount = tableSchema.columns.length
+  const mergedMap: boolean[][] = Array.from({ length: data.length }, () =>
+    Array(colCount).fill(false)
+  )
 
-  // 构建行类型映射：判断每行是普通行还是循环行
-  const rowTypes: ("normal" | "loop")[] = [];
-  let currentRow = 0;
-
-  // 遍历表结构定义，构建行类型映射
-  for (const rowDef of tableSchema.rows) {
-    if (rowDef.type === 'loop') {
-      // 循环行：计算该循环行生成的行数
-      const loopRowCount = plainData.length - tableSchema.rows.length + 1;
-      for (let i = 0; i < loopRowCount; i++) {
-        rowTypes[currentRow++] = "loop";
+  // 自动检测主分组列（第一个有 expand=row 的列）
+  let groupColIdx = -1
+  for (let colIdx = 0; colIdx < colCount; colIdx++) {
+    for (let rowIdx = 0; rowIdx < rowCount; rowIdx++) {
+      const cell = tableSchema.rows[rowIdx]?.cells?.[colIdx]
+      if (cell && cell.expand === 'row') {
+        groupColIdx = colIdx
+        break
       }
-    } else {
-      // 普通行
-      rowTypes[currentRow++] = "normal";
     }
+    if (groupColIdx !== -1) break
   }
 
-  // 获取单元格配置的安全方法
-  const getCellConfig = (rowIndex: number, colIndex: number) => {
-    let configRowIndex = 0;
-    let rowCount = 0;
-
-    // 查找当前数据行对应的配置行
-    for (let i = 0; i < tableSchema.rows.length; i++) {
-      const rowDef = tableSchema.rows[i];
-      const rowsGenerated = rowDef.type === 'loop'
-        ? plainData.length - tableSchema.rows.length + 1
-        : 1;
-
-      if (rowIndex >= rowCount && rowIndex < rowCount + rowsGenerated) {
-        configRowIndex = i;
-        break;
+  // 自动检测主分组行（第一个有 expand=col 的行）
+  let groupRowIdx = -1
+  for (let rowIdx = 0; rowIdx < rowCount; rowIdx++) {
+    for (let colIdx = 0; colIdx < colCount; colIdx++) {
+      const cell = tableSchema.rows[rowIdx]?.cells?.[colIdx]
+      if (cell && cell.expand === 'col') {
+        groupRowIdx = rowIdx
+        break
       }
-      rowCount += rowsGenerated;
     }
+    if (groupRowIdx !== -1) break
+  }
 
-    const rowConfig = tableSchema.rows[configRowIndex];
-    if (!rowConfig || !rowConfig.cells) return null;
-
-    // 返回列配置（如果列超出范围，返回最后一列的配置）
-    return colIndex < rowConfig.cells.length
-      ? rowConfig.cells[colIndex]
-      : rowConfig.cells[rowConfig.cells.length - 1];
-  };
-
-  // 1. 行合并（纵向）：只处理循环行
-  for (let colIdx = 0; colIdx < tableSchema.columns.length; colIdx++) {
-    for (let rowIdx = 0; rowIdx < data.length; rowIdx++) {
-      // 只对循环行做行合并
-      if (rowTypes[rowIdx] !== "loop") continue;
-
-      const cellConfig = getCellConfig(rowIdx, colIdx);
-      const cellValue = data[rowIdx][colIdx];
-
-      // 跳过空值或非行合并单元格
-      if (!cellConfig || cellConfig.expand !== 'row' || cellValue == null || cellValue === '') {
-        continue;
-      }
-
-      // 查找可合并的行范围（只考虑循环行）
-      let mergeCount = 1;
-      for (let nextRow = rowIdx + 1; nextRow < data.length; nextRow++) {
-        // 遇到普通行停止合并
-        if (rowTypes[nextRow] === "normal") break;
-
-        const nextCellConfig = getCellConfig(nextRow, colIdx);
-        const nextValue = data[nextRow][colIdx];
-
-        // 检查是否可合并
-        if (
-          nextCellConfig?.expand === 'row' &&
-          nextValue === cellValue
-        ) {
-          mergeCount++;
+  // 1. 计算主分组列的所有合并区间
+  const groupRanges: Array<{ start: number; end: number }> = []
+  if (groupColIdx !== -1) {
+    let groupStart = 0
+    while (groupStart < data.length) {
+      const groupValue = data[groupStart][groupColIdx]
+      let groupEnd = groupStart
+      for (let r = groupStart + 1; r < data.length; r++) {
+        if (data[r][groupColIdx] === groupValue) {
+          groupEnd = r
         } else {
-          break;
+          break
         }
       }
-
-      // 找到可合并区域
-      if (mergeCount > 1) {
+      if (groupEnd > groupStart) {
         merges.push({
-          row: rowIdx,
-          col: colIdx,
-          rowspan: mergeCount,
-          colspan: 1
-        });
-
-        // 清空被合并单元格（保留第一个）
-        for (let i = rowIdx + 1; i < rowIdx + mergeCount; i++) {
-          data[i][colIdx] = '';
-        }
-
-        // 跳过已合并区域
-        rowIdx += mergeCount - 1;
+          row: groupStart,
+          col: groupColIdx,
+          rowspan: groupEnd - groupStart + 1,
+          colspan: 1,
+        })
+        for (let r = groupStart; r <= groupEnd; r++) mergedMap[r][groupColIdx] = true
       }
+      groupRanges.push({ start: groupStart, end: groupEnd })
+      groupStart = groupEnd + 1
     }
   }
 
-  // 2. 列合并（横向）：只处理循环行
+  // 2. 其他列合并时，是否受主分组区间限制由 schema 决定
+  const allowRowMergeBeyondParent = !!tableSchema.allowRowMergeBeyondParent
+  const allowColumnMergeBeyondParent = !!tableSchema.allowColumnMergeBeyondParent
+
   for (let rowIdx = 0; rowIdx < data.length; rowIdx++) {
-    // 只对循环行做列合并
-    if (rowTypes[rowIdx] !== "loop") continue;
-
-    for (let colIdx = 0; colIdx < tableSchema.columns.length; colIdx++) {
-      // 跳过已合并的单元格
-      if (data[rowIdx][colIdx] === '') continue;
-
-      const cellConfig = getCellConfig(rowIdx, colIdx);
-      const cellValue = data[rowIdx][colIdx];
-
-      // 跳过空值或非列合并单元格
-      if (!cellConfig || cellConfig.expand !== 'col' || cellValue == null) {
-        continue;
+    const rowDef = tableSchema.rows[rowIdx] || {}
+    if (rowDef.type !== 'loop') continue
+    // 找到当前行所在的主分组区间
+    let group = { start: rowIdx, end: rowIdx }
+    if (groupColIdx !== -1) {
+      group = groupRanges.find((g) => rowIdx >= g.start && rowIdx <= g.end) || {
+        start: rowIdx,
+        end: rowIdx,
       }
-
-      // 查找可合并的列范围
-      let mergeCount = 1;
-      for (let nextCol = colIdx + 1; nextCol < tableSchema.columns.length; nextCol++) {
-        const nextCellConfig = getCellConfig(rowIdx, nextCol);
-        const nextValue = data[rowIdx][nextCol];
-
-        // 检查是否可合并
-        if (
-          nextCellConfig?.expand === 'col' &&
-          nextValue === cellValue
-        ) {
-          mergeCount++;
-        } else {
-          break;
+    }
+    for (let colIdx = 0; colIdx < colCount; colIdx++) {
+      if (colIdx === groupColIdx) continue // 主分组列已处理
+      if (mergedMap[rowIdx][colIdx]) continue
+      const cell = rowDef.cells?.[colIdx] || {}
+      const cellValue = data[rowIdx][colIdx]
+      // 纵向合并
+      if (cell.expand === 'row') {
+        let maxRow = rowIdx
+        for (let r = rowIdx + 1; r < data.length; r++) {
+          if (!allowRowMergeBeyondParent && groupColIdx !== -1 && r > group.end) break
+          const nextRowDef = tableSchema.rows[r] || {}
+          if (nextRowDef.type !== 'loop') break
+          const nextCell = nextRowDef.cells?.[colIdx] || {}
+          if (nextCell.expand === 'row' && !mergedMap[r][colIdx] && data[r][colIdx] === cellValue) {
+            maxRow = r
+          } else {
+            break
+          }
+        }
+        const rowspan = maxRow - rowIdx + 1
+        if (rowspan > 1) {
+          merges.push({ row: rowIdx, col: colIdx, rowspan, colspan: 1 })
+          for (let r = rowIdx; r <= maxRow; r++) mergedMap[r][colIdx] = true
         }
       }
-
-      // 找到可合并区域
-      if (mergeCount > 1) {
-        //rowIdx, colIdx, 1, mergeCount
-        merges.push({
-          row: rowIdx,
-          col: colIdx,
-          rowspan: 1,
-          colspan: mergeCount
-        });
-
-        // 清空被合并单元格（保留第一个）
-        for (let j = colIdx + 1; j < colIdx + mergeCount; j++) {
-          data[rowIdx][j] = '';
+      // 横向合并
+      if (cell.expand === 'col') {
+        let maxCol = colIdx
+        for (let c = colIdx + 1; c < colCount; c++) {
+          if (!allowColumnMergeBeyondParent && groupRowIdx !== -1 && c > groupRowIdx) break
+          if (mergedMap[rowIdx][c]) break
+          const nextCell = rowDef.cells?.[c] || {}
+          if (nextCell.expand === 'col' && data[rowIdx][c] === cellValue) {
+            maxCol = c
+          } else {
+            break
+          }
         }
-
-        // 跳过已合并区域
-        colIdx += mergeCount - 1;
+        const colspan = maxCol - colIdx + 1
+        if (colspan > 1) {
+          merges.push({ row: rowIdx, col: colIdx, rowspan: 1, colspan })
+          for (let c = colIdx; c <= maxCol; c++) mergedMap[rowIdx][c] = true
+        }
       }
     }
   }
-
-  // 3. 普通行的合并（如果有需要，可以在这里实现）
-  // 当前只对循环行做合并，普通行不做合并
-
-  return { merges, data };
-};
-
-const test = () => {
-  const tableSchema = {
-    rows: [
-      {
-        cells: [
-          { expand: 'row' }, // 第0行第0列
-          { expand: 'col' }  // 第0行第1列
-        ]
-      },
-      {
-        cells: [
-          { expand: 'row' }, // 第1行第0列
-          {} // 第1行第1列
-        ]
-      }
-    ],
-    columns: [{}, {}] // 两列
-  };
-
-  const plainData = [
-    ['合并我', '横向合并'],
-    ['合并我', '单独值']
-  ];
-
-  const result = handleDataExpand(tableSchema as any, plainData);
-
-  console.log(result)
+  return { merges, data }
 }
 
-export const toExcelTableData = (raw: DatasourceData, tableSchema: TableDesign["schema"]) => {
+export const parseVariable = (
+  cellExpression: string,
+  record: Record<string, any>,
+  dsMap: Record<string, DataSourceField>
+) => {
+  if (!cellExpression) return ''
 
-  const {items} = raw;
+  // 使用正则表达式提取变量 =concat("${foo.bar}", "${foo.woo}")，需要可以替换多个
+  const variableMatch = cellExpression.matchAll(/\$\{([^}]+)\}/g)
+  let result = cellExpression
 
-  const result: any[][] = [];
+  for (const match of variableMatch) {
+    if (match[1]) {
+      const variable = match[1].trim()
+      const value = get(record, variable, '')
+
+      // enum 字典
+      if (dsMap[variable]?.type === 'enum') {
+        const dictItem = dsMap[variable].dataDict?.find(
+          (item: DataDictItem) => item.value === value
+        )
+        if (dictItem) {
+          result = result.replace(match[0], dictItem.label)
+          continue
+        }
+      }
+
+      result = result.replace(match[0], value)
+    }
+  }
+
+  return result
+}
+
+export const toExcelTableData = async (
+  raw: DatasourceData,
+  tableSchema: TableDesign['schema'],
+  datasource: DataSourceType
+) => {
+  const { items } = raw
+
+  const result: any[][] = []
+
+  const dsMap: Record<string, DataSourceField> = datasource.schema?.fields?.reduce((acc, field) => {
+    acc[field.id] = field
+    return acc
+  })
+
+  // 获取所有涉及的字典
+  const dictIds: string[] = [
+    ...new Set(
+      datasource.schema?.fields
+        ?.filter((field) => {
+          return field.type === 'enum' && field.dictId
+        })
+        .map((item) => item.dictId) || []
+    ),
+  ] as string[]
+
+  if (dictIds.length) {
+    const dictList: DataDict[] = (await getDictionaryByIdIn(dictIds)) || []
+    const dictMap: Record<string, DictionaryItem[]> = dictList.reduce(
+      (acc, dict) => {
+        acc[dict.id] = dict.items ?? []
+        return acc
+      },
+      {} as Record<string, DictionaryItem[]>
+    )
+
+    Object.keys(dsMap).forEach((key) => {
+      const field = dsMap[key]
+      if (field.type === 'enum' && field.dictId) {
+        field.dataDict = dictMap[field.dictId.toString()] || []
+      }
+    })
+  }
 
   tableSchema.rows.forEach((row) => {
-    if (row.type === "loop") {
-      items.forEach(record => {
-        const rowData: any[] = [];
+    if (row.type === 'loop') {
+      items.forEach((record) => {
+        const rowData: any[] = []
         row.cells.forEach((cell) => {
-          let cellValue = '';
-          if (cell.variable) {
-            cellValue = get(record, cell.variable, '')
-          } else {
-            cellValue = cell.value || '';
-          }
-
-          rowData.push(cellValue);
+          const cellValue = parseVariable(cell.value, record, dsMap)
+          rowData.push(cellValue === undefined ? '' : cellValue)
         })
 
-        result.push(rowData);
+        result.push(rowData)
       })
     } else {
-      const rowData: any[] = [];
+      const rowData: any[] = []
       row.cells.forEach((cell) => {
-        rowData.push(cell.value || '');
-      });
-      result.push(rowData);
+        rowData.push(cell.value || '')
+      })
+      result.push(rowData)
     }
   })
 
+  // test();
+  const expandedTableSchema = {
+    ...tableSchema,
+  }
 
-  return handleDataExpand(tableSchema, result)
+  const rows: TableDesign['schema']['rows'] = []
+  tableSchema.rows.forEach((row) => {
+    if (row.type === 'loop') {
+      raw.items.forEach((item) => {
+        rows.push(row)
+      })
+    } else {
+      rows.push(row)
+    }
+  })
+
+  expandedTableSchema.rows = rows
+
+  const res = handleDataExpand(expandedTableSchema, result)
+
+  expandedTableSchema.mergeCells = [...(expandedTableSchema.mergeCells || []), ...res.merges]
+
+  return {
+    expandedTableSchema,
+    expandedData: res.data,
+  }
 }
-

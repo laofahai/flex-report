@@ -83,7 +83,9 @@ export const CellConfigPanel: React.FC<CellConfigPanelProps> = ({
 
   React.useEffect(() => {
     // 如果当前行是 loop 行，默认显示字段
-    if (cell && currentRow?.type === 'loop') setShowVariable(true);
+    if (cell && currentRow?.type === 'loop' && cell.variable) {
+      setShowVariable(true)
+    }
     else setShowVariable(false);
   }, [cell]);
 
@@ -227,32 +229,34 @@ export const CellConfigPanel: React.FC<CellConfigPanelProps> = ({
                 <FormItem className="flex flex-row items-center gap-2 w-full">
                   <FormLabel className="text-sm min-w-[48px] text-right">内容</FormLabel>
                   <FormControl className="flex-1">
-                    <Input readOnly={showVariable} placeholder="请输入内容" {...field} />
+                    <Input placeholder="请输入内容" {...field} />
                   </FormControl>
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="expand"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center gap-2 w-full">
-                  <FormLabel className="text-sm min-w-[48px] text-right">扩展</FormLabel>
-                  <FormControl className="flex-1">
-                    <Select value={field.value || 'none'} onValueChange={field.onChange}>
-                      <SelectTrigger className="w-full ">
-                        <SelectValue placeholder="请选择扩展" />
-                      </SelectTrigger>
-                      <SelectContent className={"z-1000"}>
-                        <SelectItem value="none" className="">无</SelectItem>
-                        <SelectItem value="col" className="">跨列</SelectItem>
-                        <SelectItem value="row" className="">跨行</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+            {showVariable &&
+              <FormField
+                control={form.control}
+                name="expand"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center gap-2 w-full">
+                    <FormLabel className="text-sm min-w-[48px] text-right">扩展</FormLabel>
+                    <FormControl className="flex-1">
+                      <Select value={field.value || 'none'} onValueChange={field.onChange}>
+                        <SelectTrigger className="w-full ">
+                          <SelectValue placeholder="请选择扩展" />
+                        </SelectTrigger>
+                        <SelectContent className={"z-1000"}>
+                          <SelectItem value="none" className="">无</SelectItem>
+                          <SelectItem value="col" className="">跨列</SelectItem>
+                          <SelectItem value="row" className="">跨行</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            }
             <Separator className={"my-6"} />
             <div className="flex gap-2 justify-between">
               <Button size="sm" variant="outline" type="button" onClick={onClose}>取消</Button>

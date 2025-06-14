@@ -18,7 +18,7 @@ export const DataSourceFieldSchemaBase = z.object({
   filterable: z.boolean().optional(),
   filterType: z.enum(['none', 'equals', 'like', 'in', 'range']).optional(),
   targetField: z.string().optional(),
-  dataDictId: z.string().optional(),
+  dictId: z.string().optional(),
   dataDict: z.array(DataDictItemSchema).optional(),
 });
 

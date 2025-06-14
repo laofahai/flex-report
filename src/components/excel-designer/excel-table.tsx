@@ -8,6 +8,8 @@ import { TableToolbar } from '@/components/excel-designer/excel-toolbar'
 import { CellConfigPanel } from './cell-config-panel';
 import { HyperFormula } from 'hyperformula'
 import { toast } from 'sonner'
+import { ExcelDefaultColumnWidth, ExcelDefaultRowHeight } from '@/lib/defaults'
+import { cloneDeep } from 'lodash-es'
 
 // @ts-ignore
 Handsontable.plugins.registerPlugin('ManualColumnResize', ManualColumnResize)
@@ -40,9 +42,13 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
                                                       }) => {
   const hotRef = useRef<HotTableClass>(null);
   const [selectionRange, setSelectionRange] = React.useState<Handsontable.CellRange[] | null>(null);
-  const [excelData, setExcelData] = React.useState<any[][]>(tableDesign.schema.rows.map(row => row.cells?.map(cell => {
-    return cell.value || '';
-  })));
+  const [excelData, setExcelData] = React.useState<any[][]>([]);
+
+  // excelData 只由 tableDesign.schema.rows 驱动
+  React.useEffect(() => {
+    setExcelData(tableDesign.schema.rows.map(row => row.cells?.map(cell => cell.value || '')));
+  }, [tableDesign.schema.rows]);
+
   const [cellConfigPanel, setCellConfigPanel] = React.useState<{
     row: number;
     col: number;
@@ -50,12 +56,13 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
     anchorPosition?: { x: number; y: number };
   }>({ row: -1, col: -1, visible: false });
 
+  // handleSetExcelData 只负责格式化并通知父组件，不再 setExcelData
   const handleSetExcelData = (newData: any[][]) => {
-    setExcelData(newData);
     const formattedData: ExcelDesignerRow[] = newData.map((row, rowIndex) => {
       return {
-        type: tableDesign.schema.rows[rowIndex]?.type || 'normal', // 默认类型为 'normal'
+        type: tableDesign.schema.rows[rowIndex]?.type || 'normal',
         cells: row.map((value, colIndex) => ({
+          ...tableDesign.schema.rows[rowIndex]?.cells?.[colIndex],
           value,
         })),
       };
@@ -84,19 +91,25 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
         datasourceId={undefined} // 可根据需要传递
         onClose={closeCellConfigPanel}
         onChange={updatedCell => {
+          const newData = cloneDeep(tableDesign.schema.rows)
           // 更新 cell 配置
-          const newData = tableDesign.schema.rows.map((row, rowIdx) => {
-            if (rowIdx !== cellConfigPanel.row) return row;
-            return {
-              ...row,
-              cells: row.cells.map((c, colIdx) =>
-                colIdx === cellConfigPanel.col ? { ...c, ...updatedCell } : c
-              ),
-            };
-          });
+          newData[cellConfigPanel.row].cells[cellConfigPanel.col] = {
+            ...newData[cellConfigPanel.row].cells[cellConfigPanel.col],
+            ...updatedCell
+          }
+
           onDataChange(newData);
           // 同步 excelData 内容
           setExcelData(newData.map(row => row.cells.map(cell => cell.value || '')));
+
+          // 这里如果是公式 需要触发 formulas 更新 // @todo this will trigger data updated twice
+          // const hot = hotRef.current?.hotInstance;
+          // if (hot) {
+          //   const cellCoords = hot.getCell(cellConfigPanel.row, cellConfigPanel.col);
+          //   if (cellCoords) {
+          //     hot.setDataAtCell(cellConfigPanel.row, cellConfigPanel.col, updatedCell.value || '');
+          //   }
+          // }
         }}
       />
     );
@@ -118,8 +131,8 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
         colHeaders={true}
         rowHeaders={true}
         height={`calc(100vh - 200px)`} // 根据需要调整高度
-        colWidths={120} // ✅ 建议给默认列宽
-        rowHeights={tableDesign.schema.rows.map(row => row.height || 30)} // 行高支持
+        colWidths={ExcelDefaultColumnWidth} // ✅ 建议给默认列宽
+        rowHeights={tableDesign.schema.rows.map(row => row.height || ExcelDefaultRowHeight)} // 行高支持
         manualRowMove={true}
         manualColumnMove={true}
         manualColumnResize={true}
@@ -238,7 +251,7 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
             cellProperties.className = (cellProperties.className || '') + ` ht${hAlign.charAt(0).toUpperCase() + hAlign.slice(1)}`;
           }
 
-          cellProperties.width = tableDesign.schema.columns?.[col]?.width || 120; // 列宽支持
+          cellProperties.width = tableDesign.schema.columns?.[col]?.width || ExcelDefaultColumnWidth; // 列宽支持
           return cellProperties;
         }}
         afterSelectionEnd={(row: number, column: number, row2: number, column2: number) => {
@@ -271,8 +284,8 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
           if (source === 'edit' && changes) {
             const newData = [...excelData];
             changes.forEach(([row, col, oldVal, newVal]) => {
-              if (newData[row] && newData[row][col as number]) {
-                newData[row][col as number] = newVal;
+              if (newData[row]) {
+                newData[row][col as number] = newVal || '';
               }
             });
 

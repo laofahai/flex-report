@@ -10,6 +10,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { ExcelDesignerCell, ExcelDesignerRow, TableDesign } from '@/types/table-design'
 import { ExcelTable } from './excel-table';
 import { toast } from 'sonner'
+import { ExcelDefaultColumns, ExcelDefaultColumnWidth } from '@/lib/defaults'
 
 export function ExcelDesigner() {
   const searchParams = useSearchParams();
@@ -18,8 +19,8 @@ export function ExcelDesigner() {
 
   const [dataSources, setDataSources] = useState<{ id: string; name: string }[]>([]);
 
-  const initialColumnsLength = 8;
-  const initialColumnWidth = 120;
+  const initialColumnsLength = ExcelDefaultColumns;
+  const initialColumnWidth = ExcelDefaultColumnWidth;
   const [tableDesign, setTableDesign] = useState<TableDesign>({
     name: 'ExcelDesigner',
     schema: {
@@ -145,6 +146,7 @@ export function ExcelDesigner() {
                   value: cell.value == null ? '' : cell.value
                 }))
               }));
+
               setTableDesign(prev => ({
                 ...prev,
                 schema: {
