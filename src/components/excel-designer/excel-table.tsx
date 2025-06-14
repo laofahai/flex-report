@@ -1,15 +1,13 @@
 import React, { useRef } from 'react';
-import { HotTable } from '@handsontable/react';
+import { HotTable, HotTableClass } from '@handsontable/react'
 import 'handsontable/dist/handsontable.full.min.css';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react'
-import Handsontable from 'handsontable'
+import Handsontable, { CellRange } from 'handsontable'
 import { AutoColumnSize, ManualColumnResize, ManualRowResize, ContextMenu } from 'handsontable/plugins'
-import { ExcelDesignerCell, ExcelDesignerRow } from '@/types/table-design'
+import { ExcelDesignerRow, TableDesign } from '@/types/table-design'
 import { TableToolbar } from '@/components/excel-designer/excel-toolbar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Input } from '@/components/ui/input';
 import { CellConfigPanel } from './cell-config-panel';
+import { HyperFormula } from 'hyperformula'
+import { toast } from 'sonner'
 
 // @ts-ignore
 Handsontable.plugins.registerPlugin('ManualColumnResize', ManualColumnResize)
@@ -22,19 +20,27 @@ Handsontable.plugins.registerPlugin('ContextMenu', ContextMenu)
 
 
 export interface ExcelTableProps {
-  data: ExcelDesignerRow[];
+  tableDesign: TableDesign;
   onDataChange: (data: ExcelDesignerRow[]) => void;
-  rowTypes: { type: any; formula?: string }[];
-  onRowTypeChange: (rowIdx: number, type: ExcelDesignerRow["type"], formula?: string) => void;
+  onRowTypeChange: (rowIdx: number, type: ExcelDesignerRow["type"]) => void;
+  onRowHeightChange: (rowIdx: number, height: number) => void;
+  onColumnWidthChange?: (colIdx: number, width: number) => void;
+  onBeforeAlignChange?: (range: CellRange[], align: string, type: 'horizontal' | 'vertical') => void;
+  onUpdateMergeCells?: (mergeCells: any[]) => void;
 }
 
 export const ExcelTable: React.FC<ExcelTableProps> = ({
-  data,
-  onDataChange,
-}) => {
-  const hotRef = useRef<any>(null);
+                                                        tableDesign,
+                                                        onDataChange,
+                                                        onRowTypeChange,
+                                                        onRowHeightChange,
+                                                        onColumnWidthChange,
+                                                        onBeforeAlignChange,
+                                                        onUpdateMergeCells
+                                                      }) => {
+  const hotRef = useRef<HotTableClass>(null);
   const [selectionRange, setSelectionRange] = React.useState<Handsontable.CellRange[] | null>(null);
-  const [excelData, setExcelData] = React.useState<any[][]>(data.map(row => row.cells.map(cell => {
+  const [excelData, setExcelData] = React.useState<any[][]>(tableDesign.schema.rows.map(row => row.cells?.map(cell => {
     return cell.value || '';
   })));
   const [cellConfigPanel, setCellConfigPanel] = React.useState<{
@@ -44,14 +50,11 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
     anchorPosition?: { x: number; y: number };
   }>({ row: -1, col: -1, visible: false });
 
-  // 新增：Popover锚点ref
-  const popoverAnchorRef = React.useRef<HTMLDivElement>(null);
-
   const handleSetExcelData = (newData: any[][]) => {
     setExcelData(newData);
     const formattedData: ExcelDesignerRow[] = newData.map((row, rowIndex) => {
       return {
-        type: data[rowIndex]?.type || 'normal', // 默认类型为 'normal'
+        type: tableDesign.schema.rows[rowIndex]?.type || 'normal', // 默认类型为 'normal'
         cells: row.map((value, colIndex) => ({
           value,
         })),
@@ -68,21 +71,21 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
   const renderCellConfigPanel = () => {
     if (!cellConfigPanel.visible) return null;
     // 获取当前 cell 的配置
-    const cell = data[cellConfigPanel.row]?.cells?.[cellConfigPanel.col] || { value: '' };
+    const cell = tableDesign.schema.rows[cellConfigPanel.row]?.cells?.[cellConfigPanel.col] || { value: '' };
     return (
       <CellConfigPanel
+        tableDesign={tableDesign}
         open={cellConfigPanel.visible}
         anchorPosition={cellConfigPanel.anchorPosition}
         row={cellConfigPanel.row}
         col={cellConfigPanel.col}
         cell={cell}
-        currentRow={data[cellConfigPanel.row]}
+        currentRow={tableDesign.schema.rows[cellConfigPanel.row]}
         datasourceId={undefined} // 可根据需要传递
-        getDatasourceIdByRow={row => row?.datasourceId}
         onClose={closeCellConfigPanel}
         onChange={updatedCell => {
           // 更新 cell 配置
-          const newData = data.map((row, rowIdx) => {
+          const newData = tableDesign.schema.rows.map((row, rowIdx) => {
             if (rowIdx !== cellConfigPanel.row) return row;
             return {
               ...row,
@@ -99,36 +102,156 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
     );
   };
 
+  const hyperformulaInstance = HyperFormula.buildEmpty({
+    licenseKey: 'internal-use-in-handsontable',
+  });
+
+
   return (
-   <div className="relative overflow-x-auto w-full" style={{ position: 'relative' }}>
-     {JSON.stringify(data)}
-     <div className={"py-2"}>
-       <TableToolbar hotRef={hotRef} selectionRange={selectionRange} onSetSelectionRange={setSelectionRange} />
-     </div>
-     <HotTable
-       ref={hotRef}
-       data={excelData?.length > 0 ? excelData : []} // 默认数据传空时给 [[""]]
-       colHeaders={true}
-       rowHeaders={true}
-       height={`calc(100vh - 200px)`} // 根据需要调整高度
-       colWidths={120} // ✅ 建议给默认列宽
-       manualRowMove={true}
-       manualColumnResize={true}
-       autoWrapRow={true}
-       autoWrapCol={true}
-       contextMenu={true}
-       licenseKey="non-commercial-and-evaluation"
-       afterSelectionEnd={(row: number, column: number, row2: number, column2: number) => {
-          const hot = hotRef.current.hotInstance;
-          const selectedRanges = hot.getSelectedRange(); // 支持多块区域
-          setSelectionRange(selectedRanges);
+    <div className="relative overflow-x-auto w-full" style={{ position: 'relative' }}>
+      <div className={"py-2"}>
+        <TableToolbar hotRef={hotRef} selectionRange={selectionRange} onSetSelectionRange={setSelectionRange} />
+      </div>
+      <HotTable
+        ref={hotRef}
+        data={excelData?.length > 0 ? excelData : []} // 默认数据传空时给 [[""]]
+        colHeaders={true}
+        rowHeaders={true}
+        height={`calc(100vh - 200px)`} // 根据需要调整高度
+        colWidths={120} // ✅ 建议给默认列宽
+        rowHeights={tableDesign.schema.rows.map(row => row.height || 30)} // 行高支持
+        manualRowMove={true}
+        manualColumnMove={true}
+        manualColumnResize={true}
+        manualRowResize={true}
+        manualColumnFreeze={true}
+        autoWrapRow={true}
+        autoWrapCol={true}
+        mergeCells={tableDesign.schema.mergeCells as any[] || []}
+        formulas={
+          {
+            engine: hyperformulaInstance,
+            sheetName: 'Sheet1',
+          }
+        }
+        contextMenu={{
+          items: {
+            ...ContextMenu.DEFAULT_ITEMS,
+            sep0: ContextMenu.SEPARATOR,
+            mergeCells: {
+              key: 'mergeCells',
+              name: '合并单元格',
+              callback: () => {
+                const hot = hotRef.current?.hotInstance;
+                if (!hot || !onUpdateMergeCells) return;
+                const selected = hot.getSelectedRange();
+                if (!selected) return;
+                for (let i = 0; i < selected.length; i++) {
+                  for (let row = selected[i].from.row; row <= selected[i].to.row; row++) {
+                    if (tableDesign.schema.rows[row]?.type === 'loop') {
+                      toast.error("循环行不允许合并单元格");
+                      return; // 循环行不允许合并
+                    }
+                  }
+                }
+                onUpdateMergeCells([
+                  ...(tableDesign.schema.mergeCells || []),
+                  ...(selected || []).map(item => {
+                    return {
+                      row: item.from.row,
+                      col: item.from.col,
+                      rowspan: item.to.row - item.from.row + 1,
+                      colspan: item.to.col - item.from.col + 1
+                    };
+                  })
+                ]);
+              }
+            },
+            unmergeCells: {
+              key: 'unmergeCells',
+              name: '拆分单元格',
+              callback: () => {
+                const hot = hotRef.current?.hotInstance;
+                if (!hot || !onUpdateMergeCells) return;
+                const selected = hot.getSelectedRange();
+                if (selected && selected.length > 0) {
+                  const mergeCells = tableDesign.schema.mergeCells || [];
+                  const newMergeCells = mergeCells.filter(item => {
+                    return !(
+                      item.row >= selected[0].from.row &&
+                      item.col >= selected[0].from.col &&
+                      item.row + (item.rowspan || 1) - 1 <= selected[0].to.row &&
+                      item.col + (item.colspan || 1) - 1 <= selected[0].to.col
+                    );
+                  });
+                  onUpdateMergeCells(newMergeCells);
+                }
+              }
+            },
+            sep1: ContextMenu.SEPARATOR,
+            switchToLoopRow: {
+              key: 'switchToLoopRow',
+              disabled: function() {
+                const sel = this.getSelected?.();
+                if (!sel || sel.length === 0) return true;
+                const row = sel[0][0]; // [row, col, row2, col2]
+                return tableDesign.schema.rows[row]?.type === 'loop';
+              },
+              name: '切换为循环行',
+              callback: (key, selection) => {
+                if (selection && selection.length > 0) {
+                  const rowIndex = selection[0].start.row
+                  onRowTypeChange(rowIndex, 'loop');
+                }
+              }
+            },
+            switchToNormalRow: {
+              key: 'switchToNormalRow',
+              disabled: function() {
+                const sel = this.getSelected?.();
+                if (!sel || sel.length === 0) return true;
+                const row = sel[0][0]; // [row, col, row2, col2]
+                return tableDesign.schema.rows[row]?.type === 'normal';
+              },
+              name: '切换为普通行',
+              callback: (key, selection) => {
+                if (selection && selection.length > 0) {
+                  const rowIndex = selection[0].start.row
+                  onRowTypeChange(rowIndex, 'normal');
+                }
+              }
+            }
+          }
+        }}
+        cells={function(row, col, prop): any {
+          const cellProperties: any = {};
+          if (tableDesign.schema.rows[row]?.type === 'loop') {
+            cellProperties.className = (cellProperties.className || '') + ' !bg-yellow-50';
+          }
+          if (tableDesign.schema.rows[row]?.cells?.[col].vAlign) {
+            const vAlign = tableDesign.schema.rows[row].cells[col].vAlign;
+            cellProperties.className = (cellProperties.className || '') + ` ht${vAlign.charAt(0).toUpperCase() + vAlign.slice(1)}`;
+          }
+          if (tableDesign.schema.rows[row]?.cells?.[col].hAlign) {
+            const hAlign = tableDesign.schema.rows[row].cells[col].hAlign;
+            cellProperties.className = (cellProperties.className || '') + ` ht${hAlign.charAt(0).toUpperCase() + hAlign.slice(1)}`;
+          }
+
+          cellProperties.width = tableDesign.schema.columns?.[col]?.width || 120; // 列宽支持
+          return cellProperties;
+        }}
+        licenseKey="non-commercial-and-evaluation"
+        afterSelectionEnd={(row: number, column: number, row2: number, column2: number) => {
+          const hot = hotRef.current?.hotInstance;
+          const selectedRanges = hot?.getSelectedRange(); // 支持多块区域
+          setSelectionRange(selectedRanges || []);
           if (
             selectedRanges &&
             selectedRanges.length === 1 &&
             selectedRanges[0].from.row === selectedRanges[0].to.row &&
             selectedRanges[0].from.col === selectedRanges[0].to.col
           ) {
-            const cellCoords = hot.getCell(selectedRanges[0].from.row, selectedRanges[0].from.col);
+            const cellCoords = hot?.getCell(selectedRanges[0].from.row, selectedRanges[0].from.col);
             let anchorPosition = undefined;
             if (cellCoords) {
               const rect = cellCoords.getBoundingClientRect();
@@ -143,22 +266,40 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
           } else {
             setCellConfigPanel({ row: -1, col: -1, visible: false });
           }
-       }}
-       afterChange={(changes, source) => {
-         if (source === 'edit' && changes) {
-           const newData = [...excelData];
-           changes.forEach(([row, col, oldVal, newVal]) => {
-             if (newData[row] && newData[row][col as number]) {
-               newData[row][col as number] = newVal;
-             }
-           });
+        }}
+        afterChange={(changes, source) => {
+          if (source === 'edit' && changes) {
+            const newData = [...excelData];
+            changes.forEach(([row, col, oldVal, newVal]) => {
+              if (newData[row] && newData[row][col as number]) {
+                newData[row][col as number] = newVal;
+              }
+            });
 
-           handleSetExcelData(newData);
-         }
-       }}
-     />
-     {renderCellConfigPanel()}
-   </div>
+            handleSetExcelData(newData);
+          }
+        }}
+        afterRowResize={(newSize, row, isDoubleClick) => {
+          console.log(row, newSize)
+          if (typeof onRowHeightChange === 'function') {
+            onRowHeightChange(row, newSize);
+          }
+        }}
+        afterColumnResize={(newSize, col, isDoubleClick) => {
+          if (typeof onColumnWidthChange === 'function') {
+            onColumnWidthChange(col, newSize);
+          }
+        }}
+        beforeCellAlignment={(changes, range: CellRange[], type, cls) => {
+          const align = cls.replace('ht', '').toLowerCase();
+          if (onBeforeAlignChange && type) {
+              onBeforeAlignChange(range, align, type);
+          }
+        }}
+      />
+      {renderCellConfigPanel()}
+    </div>
   );
 };
+
 

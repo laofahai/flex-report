@@ -8,13 +8,12 @@ import { updateDataSourceConfig, updateDataSourceSchema } from '@/controller/dat
 import { convertRowKeysToSchemaFields } from '@/controller/schema';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
-import { DataSource } from '@/generated/prisma';
-import { DataSourceField } from '@/types/datasource-schema';
+import { DataSourceField, DataSourceType } from '@/types/datasource-schema'
 import JsonConfigForm, { jsonConfigSchema, JsonConfigForm as JsonConfigFormType } from './json-config-form';
 import SampleDataCard from './sample-data-card';
 import SchemaEditor from '../schema-editor';
 
-export default function JsonConfig({ dataSource }: { dataSource: DataSource }) {
+export default function JsonConfig({ dataSource }: { dataSource: DataSourceType }) {
   // Use state for defaultValues so it can be updated when config changes
   const [defaultValues, setDefaultValues] = useState<JsonConfigFormType>({
     url: '',
@@ -73,7 +72,7 @@ export default function JsonConfig({ dataSource }: { dataSource: DataSource }) {
 
   const handleFormSubmit = async (values: JsonConfigFormType) => {
     setFormState(s => ({ ...s, isSubmitting: true }));
-    await updateDataSourceConfig(dataSource.id, values);
+    await updateDataSourceConfig(dataSource.id!, values);
     setFormState(s => ({ ...s, isSubmitting: false, isSubmitSuccessful: true }));
     setTimeout(() => setFormState(s => ({ ...s, isSubmitSuccessful: false })), 1200);
     // Update defaultValues after save
@@ -90,8 +89,6 @@ export default function JsonConfig({ dataSource }: { dataSource: DataSource }) {
       const totalItemsField = defaultValues.totalItemsField;
       const pageSizeField = defaultValues.pageSizeField;
       const currentPageField = defaultValues.currentPageField;
-
-      console.log(defaultValues)
 
       // Build query params for pagination
       let fetchUrl = url;
@@ -132,8 +129,6 @@ export default function JsonConfig({ dataSource }: { dataSource: DataSource }) {
         }
         totalItems = total;
       }
-
-      console.log(totalItems, totalItemsField)
 
       // Infer schema from all keys in all rows (not just first row)
       let sampleData, schemaData: DataSourceField[] = [];
@@ -201,7 +196,7 @@ export default function JsonConfig({ dataSource }: { dataSource: DataSource }) {
 
   const saveSchema = async () => {
     setSchemaSaving(true);
-    await updateDataSourceSchema(dataSource.id, schema);
+    await updateDataSourceSchema(dataSource.id!, schema);
     setSchemaSaving(false);
     setSchemaSaved(true);
     setTimeout(() => setSchemaSaved(false), 1200);
