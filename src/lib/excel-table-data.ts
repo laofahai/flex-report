@@ -7,36 +7,60 @@ export const handleDataExpand = (
   plainData: any[][]
 ) => {
   const merges: [number, number, number, number][] = [];
-  const data = plainData.map(row => [...row]); // 浅拷贝
+  const data = plainData.map(row => [...row]); // 浅拷贝数据
 
-  // 获取行配置的安全方法（支持循环行）
-  const getRowConfig = (rowIndex: number) => {
-    // 如果行索引在定义范围内，直接返回
-    if (rowIndex < tableSchema.rows.length) {
-      return tableSchema.rows[rowIndex];
+  // 构建行类型映射：判断每行是普通行还是循环行
+  const rowTypes: ("normal" | "loop")[] = [];
+  let currentRow = 0;
+
+  // 遍历表结构定义，构建行类型映射
+  for (const rowDef of tableSchema.rows) {
+    if (rowDef.isLoopRow) {
+      // 循环行：计算该循环行生成的行数
+      const loopRowCount = plainData.length - tableSchema.rows.length + 1;
+      for (let i = 0; i < loopRowCount; i++) {
+        rowTypes[currentRow++] = "loop";
+      }
+    } else {
+      // 普通行
+      rowTypes[currentRow++] = "normal";
     }
-
-    // 否则使用最后一个行配置（通常是循环行）
-    return tableSchema.rows[tableSchema.rows.length - 1];
-  };
+  }
 
   // 获取单元格配置的安全方法
   const getCellConfig = (rowIndex: number, colIndex: number) => {
-    const rowConfig = getRowConfig(rowIndex);
-    if (!rowConfig || !rowConfig.cells) return null;
+    let configRowIndex = 0;
+    let rowCount = 0;
 
-    // 如果列索引在定义范围内，直接返回
-    if (colIndex < rowConfig.cells.length) {
-      return rowConfig.cells[colIndex];
+    // 查找当前数据行对应的配置行
+    for (let i = 0; i < tableSchema.rows.length; i++) {
+      const rowDef = tableSchema.rows[i];
+      const rowsGenerated = rowDef.isLoopRow
+        ? plainData.length - tableSchema.rows.length + 1
+        : 1;
+
+      if (rowIndex >= rowCount && rowIndex < rowCount + rowsGenerated) {
+        configRowIndex = i;
+        break;
+      }
+      rowCount += rowsGenerated;
     }
 
-    // 否则使用最后一个单元格配置
-    return rowConfig.cells[rowConfig.cells.length - 1];
+    const rowConfig = tableSchema.rows[configRowIndex];
+    if (!rowConfig || !rowConfig.cells) return null;
+
+    // 返回列配置（如果列超出范围，返回最后一列的配置）
+    return colIndex < rowConfig.cells.length
+      ? rowConfig.cells[colIndex]
+      : rowConfig.cells[rowConfig.cells.length - 1];
   };
 
-  // 1. 先行合并（纵向）
+  // 1. 行合并（纵向）：只处理循环行
   for (let colIdx = 0; colIdx < tableSchema.columns.length; colIdx++) {
     for (let rowIdx = 0; rowIdx < data.length; rowIdx++) {
+      // 跳过普通行
+      if (rowTypes[rowIdx] === "normal") continue;
+
       const cellConfig = getCellConfig(rowIdx, colIdx);
       const cellValue = data[rowIdx][colIdx];
 
@@ -45,9 +69,12 @@ export const handleDataExpand = (
         continue;
       }
 
-      // 查找可合并的行范围
+      // 查找可合并的行范围（只考虑循环行）
       let mergeCount = 1;
       for (let nextRow = rowIdx + 1; nextRow < data.length; nextRow++) {
+        // 遇到普通行停止合并
+        if (rowTypes[nextRow] === "normal") break;
+
         const nextCellConfig = getCellConfig(nextRow, colIdx);
         const nextValue = data[nextRow][colIdx];
 
@@ -77,8 +104,11 @@ export const handleDataExpand = (
     }
   }
 
-  // 2. 再列合并（横向）
+  // 2. 列合并（横向）：只处理循环行
   for (let rowIdx = 0; rowIdx < data.length; rowIdx++) {
+    // 跳过普通行
+    if (rowTypes[rowIdx] === "normal") continue;
+
     for (let colIdx = 0; colIdx < tableSchema.columns.length; colIdx++) {
       // 跳过已合并的单元格
       if (data[rowIdx][colIdx] === '') continue;
@@ -150,7 +180,7 @@ const test = () => {
     ['合并我', '单独值']
   ];
 
-  const result = handleDataExpand(tableSchema, plainData);
+  const result = handleDataExpand(tableSchema as any, plainData);
 
   console.log(result)
 }
