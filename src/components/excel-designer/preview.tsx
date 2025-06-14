@@ -11,6 +11,7 @@ import { AutoColumnSize, AutoRowSize } from 'handsontable/plugins'
 import { ExcelDefaultColumnWidth, ExcelDefaultRowHeight } from '@/lib/defaults'
 import { DataSourceType } from '@/types/datasource-schema'
 import { getDataSourceById } from '@/repository/datasource'
+import { Button } from '@/components/ui/button'
 
 // @ts-ignore
 Handsontable.plugins.registerPlugin('AutoColumnSize', AutoColumnSize)
@@ -92,6 +93,30 @@ export function Preview({ tableDesignId }: PreviewProps) {
 
   return (
     <div className={'relative'}>
+      <div className="mb-2 flex justify-end">
+        <Button
+          size="sm"
+          onClick={async () => {
+            if (!tableDesignId) return
+            const res = await fetch(`/api/excel-export?tableDesignId=${tableDesignId}`)
+            if (!res.ok) {
+              alert('导出失败')
+              return
+            }
+            const blob = await res.blob()
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `${tableDesign?.name || '导出表格'}.xlsx`
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            window.URL.revokeObjectURL(url)
+          }}
+        >
+          下载Excel
+        </Button>
+      </div>
       {data?.length && (
         <HotTable
           data={data?.length > 0 ? data : []} // 默认数据传空时给 [[""]]

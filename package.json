@@ -29,6 +29,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "exceljs": "^4.4.0",
     "generated": "link:@/generated",
     "handsontable": "^15.3.0",
     "hyperformula": "^3.0.0",
