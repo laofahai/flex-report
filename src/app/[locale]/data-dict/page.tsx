@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Trash2 } from "lucide-react";
-import * as dictionaryActions from "@/controller/dictionary";
+import * as dictionaryActions from "@/repository/dictionary";
 import { DataDictItem } from "@/types/datasource-schema";
 import { Card } from "@/components/ui/card";
 

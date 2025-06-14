@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getDictionaries } from "@/controller/dictionary";
+import { getDictionaries } from "@/repository/dictionary";
 import { DataSourceField, DataSourceSchema, DataSourceFieldSchema, DataSourceFieldSchemaBase } from '@/types/datasource-schema';
 import { toast } from "sonner";
 
@@ -36,7 +36,7 @@ export default function SchemaEditor({
   onFetchSample,
   fetching,
 }: {
-  schema: DataSourceField[];
+  schema: DataSourceSchema;
   onFieldChange: (id: string, key: string, value: string) => void;
   onSave: () => void;
   saving: boolean;
@@ -68,20 +68,6 @@ export default function SchemaEditor({
   // Get enum options from Zod schema correctly
   const typeOptions = DataSourceFieldSchemaBase.shape.type.options;
   const filterTypeOptions = DataSourceFieldSchemaBase.shape.filterType._def.innerType.options;
-
-  // Add handler to add a new schema field
-  function handleAddField() {
-    const newField = {
-      id: `field_${Date.now()}`,
-      name: '',
-      label: '',
-      type: typeOptions[0],
-      filterType: filterTypeOptions[0],
-      children: [],
-    };
-    onFieldChange(newField.id, 'add', JSON.stringify(newField));
-    toast.success('New field added');
-  }
 
   // Add handler to add a new schema field recursively by dot notation
   function handleAddFieldRecursive() {
@@ -270,7 +256,7 @@ export default function SchemaEditor({
   const memoizedColumns = React.useMemo(() => columns, [columns]);
 
   const table = useReactTable({
-    data: memoizedSchema,
+    data: memoizedSchema.fields,
     columns: memoizedColumns,
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row, index, parent) => row.id,
@@ -303,7 +289,7 @@ export default function SchemaEditor({
             <Button type="button" onClick={() => {
               onSave();
               toast.info("Saving schema...");
-            }} disabled={saving || schema.length === 0}>
+            }} disabled={saving || schema.fields?.length === 0}>
               {saving ? 'Saving...' : 'Save Schema'}
             </Button>
             <Button type="button" variant="secondary" onClick={() => {
@@ -314,7 +300,7 @@ export default function SchemaEditor({
             </Button>
           </div>
         </div>
-        {schema.length === 0 ? (
+        {memoizedSchema?.fields?.length === 0 ? (
           <div className="text-gray-500 text-sm">No schema detected. Fetch a sample to infer schema.</div>
         ) : (
           <div className="w-full overflow-x-auto">

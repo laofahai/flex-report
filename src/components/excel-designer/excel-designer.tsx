@@ -4,15 +4,16 @@ import React, { useEffect, useState } from "react";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { getDataSources } from '@/controller/datasource';
-import { getTableDesignById, createTableDesign, updateTableDesign } from '@/controller/tableDesign';
-import { useParams, useSearchParams } from 'next/navigation'
-import { TableDesignSchema, ExcelDesignerCell, ExcelDesignerRow, TableDesign } from '@/types/table-design'
+import { getDataSources } from '@/repository/datasource';
+import { getTableDesignById, createTableDesign, updateTableDesign } from '@/repository/table-design';
+import { useSearchParams, useRouter } from 'next/navigation'
+import { ExcelDesignerCell, ExcelDesignerRow, TableDesign } from '@/types/table-design'
 import { ExcelTable } from './excel-table';
 import { toast } from 'sonner'
 
 export function ExcelDesigner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const designId = searchParams.get("id") as string | undefined;
 
   const [dataSources, setDataSources] = useState<{ id: string; name: string }[]>([]);
@@ -68,11 +69,6 @@ export function ExcelDesigner() {
 
   // 保存逻辑
   async function handleSave() {
-    // 构造 schema
-    const schema = { rows: tableDesign.schema.rows.map((row) => ({
-      type: row.type || 'normal',
-      cells: row.cells || [],
-    })) };
     try {
       if (!tableDesign.dataSourceId) {
         toast.error("请选择数据源");
@@ -80,10 +76,14 @@ export function ExcelDesigner() {
       }
       if (designId) {
         await updateTableDesign(tableDesign);
+        toast.success("设计已保存");
       } else {
-        await createTableDesign(tableDesign);
+        const res = await createTableDesign(tableDesign);
+        // 假设返回的res里有id
+        const newId = res?.id;
+        toast.success("设计已保存");
+        router.push(`?id=${newId}`);
       }
-      toast.success("设计已保存");
     } catch (e: any) {
       toast.error("保存失败: " + (e?.message || e));
     }
@@ -137,12 +137,20 @@ export function ExcelDesigner() {
           <ExcelTable
             tableDesign={tableDesign}
             onDataChange={(newData: ExcelDesignerRow[]) => {
+              // 保证所有 cell.value 为 string
+              const fixedRows = newData.map(row => ({
+                ...row,
+                cells: row.cells.map(cell => ({
+                  ...cell,
+                  value: cell.value == null ? '' : cell.value
+                }))
+              }));
               setTableDesign(prev => ({
                 ...prev,
                 schema: {
                   ...prev.schema,
-                  rows: newData,
-                  columns: prev.schema.columns?.length ? prev.schema.columns : Array.from({ length: newData[0].cells.length }, (_, idx) => ({ width: initialColumnWidth }))
+                  rows: fixedRows,
+                  columns: prev.schema.columns?.length ? prev.schema.columns : Array.from({ length: fixedRows[0].cells.length }, (_, idx) => ({ width: initialColumnWidth }))
                 }
               }));
             }}
@@ -236,4 +244,5 @@ export function ExcelDesigner() {
     </div>
   );
 }
+
 

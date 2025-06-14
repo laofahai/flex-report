@@ -4,11 +4,11 @@ import { z } from 'zod';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { updateDataSourceConfig, updateDataSourceSchema } from '@/controller/datasource';
-import { convertRowKeysToSchemaFields } from '@/controller/schema';
+import { updateDataSourceConfig, updateDataSourceSchema } from '@/repository/datasource';
+import { convertRowKeysToSchemaFields } from '@/repository/schema';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
-import { DataSourceField, DataSourceType } from '@/types/datasource-schema'
+import { DataSourceField, DataSourceSchema, DataSourceType } from '@/types/datasource-schema'
 import JsonConfigForm, { jsonConfigSchema, JsonConfigForm as JsonConfigFormType } from './json-config-form';
 import SampleDataCard from './sample-data-card';
 import SchemaEditor from '../schema-editor';
@@ -22,7 +22,7 @@ export default function JsonConfig({ dataSource }: { dataSource: DataSourceType 
     pageField: '',
     pageSizeField: '',
     currentPageField: '',
-    ...JSON.parse(dataSource.config || '{}'),
+    ...dataSource.config
   });
 
   // Update defaultValues when dataSource.config changes (after save)
@@ -34,7 +34,7 @@ export default function JsonConfig({ dataSource }: { dataSource: DataSourceType 
       pageField: '',
       pageSizeField: '',
       currentPageField: '',
-      ...JSON.parse(dataSource.config || '{}'),
+      ...dataSource.config,
     });
   }, [dataSource.config]);
 
@@ -43,16 +43,14 @@ export default function JsonConfig({ dataSource }: { dataSource: DataSourceType 
   const locale = Array.isArray(params?.locale) ? params.locale[0] : params?.locale || 'en';
 
   const [sample, setSample] = useState<any>(null);
-  const [schema, setSchema] = useState<DataSourceField[]>(() => {
+  const [schema, setSchema] = useState<DataSourceSchema>(() => {
     try {
-      const raw = typeof dataSource.schema === "string" && dataSource.schema.trim()
-        ? JSON.parse(dataSource.schema)
-        : [];
+      const raw: any = dataSource.schema;
       // If already has id, return as is; else, convert
-      if (raw.length > 0 && raw[0].id) return raw;
+      if (raw?.fields.length > 0 && raw.fields[0].id) return raw;
       // Only pass string keys to convertRowKeysToSchemaFields
       const filtered = Object.fromEntries(
-        Object.entries(Array.isArray(raw) && raw.length === 1 ? raw[0] : raw)
+        Object.entries(Array.isArray(raw.fields) && raw.fields.length === 1 ? raw[0] : raw)
           .filter(([k, v]) => typeof k === 'string')
       );
       return convertRowKeysToSchemaFields(filtered);
@@ -131,7 +129,9 @@ export default function JsonConfig({ dataSource }: { dataSource: DataSourceType 
       }
 
       // Infer schema from all keys in all rows (not just first row)
-      let sampleData, schemaData: DataSourceField[] = [];
+      let sampleData, schemaData: DataSourceSchema = {
+        fields: []
+      };
       if (Array.isArray(items) && items?.length > 0) {
         // Merge all keys from all rows
         const mergedRow: any = {};
@@ -141,19 +141,27 @@ export default function JsonConfig({ dataSource }: { dataSource: DataSourceType 
           }
         }
         sampleData = items[0];
-        schemaData = convertRowKeysToSchemaFields(mergedRow);
+        schemaData = {
+          fields: convertRowKeysToSchemaFields(mergedRow)
+        };
       } else if (items && typeof items === 'object') {
         sampleData = items;
-        schemaData = convertRowKeysToSchemaFields(items);
+        schemaData = {
+          fields: convertRowKeysToSchemaFields(items)
+        };
       } else {
         sampleData = items;
-        schemaData = [];
+        schemaData = {
+          fields: []
+        };
       }
       setSample(sampleData);
       setSchema(schemaData);
     } catch (e) {
       setSample({ error: 'Failed to fetch or parse data.' });
-      setSchema([]);
+      setSchema({
+        fields: []
+      });
     }
     setFetching(false);
   };
@@ -165,30 +173,36 @@ export default function JsonConfig({ dataSource }: { dataSource: DataSourceType 
       try {
         const arr = JSON.parse(value);
         if (Array.isArray(arr)) {
-          setSchema(arr);
+          setSchema({
+            ...schema,
+            fields: arr
+          });
           return;
         }
       } catch {}
     }
-    function update(fields: DataSourceField[]): DataSourceField[] {
-      return fields
-        .map(f => {
-          if (f.id === id) {
-            if (key === 'delete') return undefined;
-            return { ...f, [key]: value };
-          }
-          if (f.children) {
-            const updatedChildren = update(f.children);
-            // If children are all deleted, remove the children property
-            if (updatedChildren.length === 0) {
-              const { children, ...rest } = f;
-              return rest;
+    function update(schema: DataSourceSchema): DataSourceSchema {
+      return {
+        ...schema,
+        fields: schema.fields
+          .map(f => {
+            if (f.id === id) {
+              if (key === 'delete') return undefined;
+              return { ...f, [key]: value };
             }
-            return { ...f, children: updatedChildren };
-          }
-          return f;
-        })
-        .filter((f): f is DataSourceField => Boolean(f));
+            if (f.children) {
+              const updatedChildren = update({fields: f.children});
+              // If children are all deleted, remove the children property
+              if (updatedChildren.fields?.length === 0) {
+                const { children, ...rest } = f;
+                return rest;
+              }
+              return { ...f, children: updatedChildren };
+            }
+            return f;
+          })
+          .filter((f): f is DataSourceField => Boolean(f))
+      };
     }
 
     setSchema(prev => update(prev));

@@ -15,7 +15,7 @@ model DataSource {
   id        String   @id @default(uuid())
   name      String
   type      String
-  config    String
+  config    Json?
   schema    Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

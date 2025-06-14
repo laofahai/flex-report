@@ -5,6 +5,19 @@ import { TableDesign, TableDesignSchema } from '@/types/table-design'
 import { Pagination } from '@/types/common'
 
 let prisma: PrismaClient;
+function normalizeSchema(schema: any) {
+  if (schema?.rows) {
+    schema.rows = schema.rows.map((row: any) => ({
+      ...row,
+      cells: row.cells.map((cell: any) => ({
+        ...cell,
+        value: cell.value === null ? "" : cell.value,
+      })),
+    }));
+  }
+  return schema;
+}
+
 if (process.env.NODE_ENV === 'production') {
   prisma = new PrismaClient();
 } else {
@@ -22,11 +35,11 @@ export async function getTableDesignById(id: string): Promise<TableDesign | null
   if (!data) return null;
   return TableDesignSchema.parse({
     ...data,
-    schema: {
+    schema: normalizeSchema({
       ...(typeof data.schema === 'object' && data.schema !== null ? data.schema : {}),
       columns: (data.schema as any)?.columns || [],
       mergeCells: (data.schema as any)?.mergeCells || [],
-    },
+    }),
     createdAt: new Date(data.createdAt),
     updatedAt: new Date(data.updatedAt),
   });
@@ -42,6 +55,7 @@ export async function createTableDesign({ name, dataSourceId, schema }: TableDes
   });
   return TableDesignSchema.parse({
     ...data,
+    schema: normalizeSchema(data.schema),
     createdAt: new Date(data.createdAt),
     updatedAt: new Date(data.updatedAt),
   });
@@ -85,6 +99,7 @@ export async function getTableDesigns({ page = 1, pageSize = 20 }: { page?: numb
   const parsedItems = items.map(item => {
     return TableDesignSchema.parse({
       ...item,
+      schema: normalizeSchema(item.schema),
       createdAt: new Date(item.createdAt),
       updatedAt: new Date(item.updatedAt),
     });

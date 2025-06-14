@@ -8,7 +8,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/
 import { useForm } from 'react-hook-form';
 import type { ExcelDesignerCell, ExcelDesignerRow } from '@/types/table-design';
 import type { TableDesign } from '@/types/table-design';
-import { getDataSourceById } from '@/controller/datasource'
+import { getDataSourceById } from '@/repository/datasource'
 import { DataSourceField } from '@/types/datasource-schema'
 import { Separator } from '@/components/ui/separator'
 import { Command, CommandInput, CommandItem, CommandList, CommandEmpty } from '@/components/ui/command';

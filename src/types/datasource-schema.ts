@@ -1,5 +1,8 @@
 import { z } from 'zod';
 import { BaseTableZod, DataTypeEnum } from '@/types/common'
+import { InputJsonValue } from '@/generated/prisma/runtime/library'
+
+export interface DataSourceConfig {}
 
 export const DataDictItemSchema = z.object({
   value: z.string(),
@@ -33,14 +36,8 @@ export type DataSourceSchema = z.infer<typeof DataSourceSchemaSchema>;
 export const DataSourceSchema = z.object({
   name: z.string(),
   type: z.string(),
-  config: z.string().optional(),
-  schema: z.union([
-    DataSourceSchemaSchema,
-    z.string(),
-    z.null(),
-    z.undefined(),
-    z.record(z.any()) // 兼容 prisma 返回 null 或空对象
-  ]).optional(),
+  config: z.any(),
+  schema: DataSourceSchemaSchema.optional(),
   ...BaseTableZod
 });
 

@@ -22,7 +22,10 @@ export async function createDataSource({ name, type }: { name: string; type: str
     data: {
       name,
       type,
-      config: '',
+      config: {},
+      schema: {
+        fields: []
+      }
     },
   }));
 }
@@ -31,6 +34,7 @@ export async function getDataSources(): Promise<DataSourceType[]> {
   const result = await prisma.dataSource.findMany({
     orderBy: { createdAt: 'desc' },
   });
+  console.log(result)
   return result.map((item: any) => DataSourceSchema.parse(item));
 }
 
@@ -41,14 +45,14 @@ export async function deleteDataSource(id: string): Promise<DataSourceType> {
 export async function updateDataSourceConfig(id: string, config: any): Promise<DataSourceType> {
   return DataSourceSchema.parse(await prisma.dataSource.update({
     where: { id },
-    data: { config: JSON.stringify(config) },
+    data: { config },
   }));
 }
 
-export async function updateDataSourceSchema(id: string, schema: any): Promise<DataSourceType> {
+export async function updateDataSourceSchema(id: string, schema: DataSourceSchema): Promise<DataSourceType> {
   return DataSourceSchema.parse(await prisma.dataSource.update({
     where: { id },
-    data: { schema: JSON.stringify(schema) },
+    data: { schema },
   }));
 }
 

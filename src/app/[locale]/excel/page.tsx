@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { TableDesign } from "@/types/table-design";
-import { getTableDesigns, deleteTableDesign } from '@/controller/tableDesign';
+import { getTableDesigns, deleteTableDesign } from '@/repository/table-design';
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";

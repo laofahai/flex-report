@@ -1,4 +1,4 @@
-import { getDataSourceById, getDataSources } from '@/controller/datasource'
+import { getDataSourceById, getDataSources } from '@/repository/datasource'
 import { notFound } from 'next/navigation';
 import JsonConfig from '../../config/json/json-config';
 

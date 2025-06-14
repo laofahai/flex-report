@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useRouter, useParams } from "next/navigation";
-import { createDataSource, getDataSources, deleteDataSource } from '@/controller/datasource';
+import { createDataSource, getDataSources, deleteDataSource } from '@/repository/datasource';
 import { Pencil, Trash2, Ruler } from "lucide-react";
 import { DataSourceType } from '@/types/datasource-schema'
 
