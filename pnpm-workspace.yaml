@@ -1,4 +1,5 @@
 ignoredBuiltDependencies:
+  - '@clerk/shared'
   - '@prisma/client'
   - '@prisma/engines'
   - '@tailwindcss/oxide'

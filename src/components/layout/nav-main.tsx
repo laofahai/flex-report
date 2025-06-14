@@ -23,7 +23,7 @@ export function NavMain({
   const menuItems = [
     {
       title: t('datasource'),
-      url: `/${locale}/datasource`,
+      url: `/${locale}/data-source`,
       icon: Database,
       isActive: false,
     },
@@ -38,7 +38,7 @@ export function NavMain({
       url: `/${locale}/excel`,
       icon: Database,
       isActive: false,
-    }
+    },
   ]
   return (
     <SidebarGroup>

@@ -1,11 +1,18 @@
 import type { Metadata } from 'next'
 import '../globals.css'
-import { hasLocale, NextIntlClientProvider, useMessages } from 'next-intl'
-import MainLayout from '../layouts/main-layout'
+import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { routing } from '@/i18n/routing'
 import { notFound } from 'next/navigation'
 import React from 'react'
-
+import {
+  ClerkProvider,
+  SignInButton,
+  SignUpButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from '@clerk/nextjs'
+import { zhCN, enUS } from '@clerk/localizations'
 
 export const metadata: Metadata = {
   title: 'Create Next App',
@@ -19,18 +26,18 @@ export default async function RootLayout({
   children: React.ReactNode
   params: Promise<{ locale: string }>
 }) {
-  const { locale } = await params;
+  const { locale } = await params
   if (!hasLocale(routing.locales, locale)) {
-    notFound();
+    notFound()
   }
-  // Dynamically import messages for the current locale
+  const clerkLocalization = locale === 'zh' ? zhCN : enUS
   return (
-    <html lang={locale}>
-      <body className={`antialiased`}>
-        <NextIntlClientProvider locale={locale}>
-          <MainLayout>{children}</MainLayout>
-        </NextIntlClientProvider>
-      </body>
-    </html>
-  );
+    <ClerkProvider localization={clerkLocalization} afterSignOutUrl={`/${locale}/sign-in`}>
+      <html lang={locale}>
+        <body className={`antialiased`}>
+          <NextIntlClientProvider locale={locale}>{children}</NextIntlClientProvider>
+        </body>
+      </html>
+    </ClerkProvider>
+  )
 }
