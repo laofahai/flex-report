@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Trash2, Pencil } from 'lucide-react'
+import { Trash2, Pencil, Plus } from 'lucide-react'
 import * as dictionaryActions from '@/repository/dictionary'
 import { DataDictItem } from '@/types/datasource-schema'
 import { Card } from '@/components/ui/card'
@@ -103,10 +103,13 @@ export default function DataDict() {
   }
 
   return (
-    <Card className="p-0 w-full md:w-[440px] max-w-full shadow-sm rounded-md ">
-      <div className="flex justify-between items-center mb-4 p-6 pb-0">
-        <h1 className="text-lg font-semibold">{t('title')}</h1>
-        <Button onClick={() => openEdit()}>{tCommon('add')}</Button>
+    <Card>
+      <div className="flex justify-between items-center mb-4 px-6">
+        <h2 className="text-lg font-semibold">{t('title')}</h2>
+        <Button size="sm" onClick={() => openEdit()}>
+          <Plus className="w-4 h-4 mr-1" />
+          {tCommon('add')}
+        </Button>
       </div>
       <div className="p-6 pt-0">
         <Table>

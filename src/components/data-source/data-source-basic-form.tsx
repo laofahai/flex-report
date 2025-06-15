@@ -14,9 +14,12 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
+import { ChevronLeft } from 'lucide-react'
+import { useRouter } from '@/i18n/navigation'
 
 export default function DataSourceBasicForm({ dataSource }: { dataSource: DataSourceType }) {
   const tCommon = useTranslations('Common')
+  const router = useRouter()
   const [name, setName] = useState(dataSource.name)
   const [record, setRecord] = useState(dataSource || {})
   const [open, setOpen] = useState(false)
@@ -34,9 +37,12 @@ export default function DataSourceBasicForm({ dataSource }: { dataSource: DataSo
 
   return (
     <div>
-      <div className="flex items-center gap-2 justify-between px-2">
+      <div className="flex items-center gap-2 justify-between">
+        <Button variant={'secondary'} onClick={() => router.push('/data-source')}>
+          <ChevronLeft />
+        </Button>
         <span
-          className="font-bold text-lg cursor-pointer hover:underline"
+          className="font-bold text-base cursor-pointer hover:underline text-ellipsis overflow-hidden"
           onClick={() => setOpen(true)}
         >
           {record.name}

@@ -4,14 +4,9 @@ import { useState, useEffect, useTransition, FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { useTranslations } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
-import { useRouter, useParams } from 'next/navigation'
-import {
-  createDataSource,
-  getDataSources,
-  deleteDataSource,
-  updateDataSource,
-} from '@/repository/datasource'
-import { Pencil, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { createDataSource, getDataSources, deleteDataSource } from '@/repository/datasource'
+import { Pencil, Trash2, Plus } from 'lucide-react'
 import { DataSourceType } from '@/types/datasource-schema'
 import MainLayout from '../../layouts/main-layout'
 import DataSourceAddDialog from '@/components/data-source/data-source-add-dialog'
@@ -26,14 +21,6 @@ import {
   TableBody,
   TableCell,
 } from '@/components/ui/table'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 
 export default function DataSourcePage() {
   const t = useTranslations('DataSource')
@@ -43,8 +30,6 @@ export default function DataSourcePage() {
   const [form, setForm] = useState({ name: '', type: 'JSON' })
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
-  const params = useParams()
-  const locale = params.locale as string
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
@@ -58,10 +43,15 @@ export default function DataSourcePage() {
 
   const handleAdd = async (e: FormEvent) => {
     e.preventDefault()
-    await createDataSource({ name: form.name, type: form.type })
+    const newDs = await createDataSource({ name: form.name, type: form.type })
     setForm({ name: '', type: 'JSON' })
     setOpen(false)
-    // Refresh the list
+    // 跳转到新建数据源的编辑页面
+    if (newDs && newDs.id) {
+      router.push(`/data-source/${newDs.id}/edit`)
+      return
+    }
+    // 刷新列表（兜底）
     startTransition(() => {
       getDataSources().then(setDataSources)
     })
@@ -77,21 +67,8 @@ export default function DataSourcePage() {
     })
   }
 
-  const openEditName = (ds: DataSourceType) => {
-    setEditId(ds.id!)
-    setEditName(ds.name)
-  }
-  const handleEditName = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!editId) return
-    setEditLoading(true)
-    await updateDataSource(editId, { name: editName })
-    setEditLoading(false)
-    setEditId(null)
-    setEditName('')
-    startTransition(() => {
-      getDataSources().then(setDataSources)
-    })
+  const openEditName = (ds: any) => {
+    router.push(`/data-source/${ds.id}/edit`)
   }
 
   return (
@@ -100,7 +77,10 @@ export default function DataSourcePage() {
         <Card className="p-0 flex-1 shadow-sm rounded-md">
           <div className="flex justify-between items-center mb-4 p-6 pb-0">
             <h1 className="text-lg font-semibold">{t('title')}</h1>
-            <Button onClick={() => setOpen(true)}>{tCommon('add')}</Button>
+            <Button size={'sm'} onClick={() => setOpen(true)}>
+              <Plus className="w-4 h-4 mr-1" />
+              {tCommon('add')}
+            </Button>
           </div>
           <div className="p-6 pt-0">
             {dataSources.length === 0 ? (
@@ -123,8 +103,9 @@ export default function DataSourcePage() {
                       <TableCell className="font-medium">{ds.name}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
-                          <Button size="sm" variant="secondary" onClick={() => openEditName(ds)}>
-                            {tCommon('edit')}
+                          <Button size="sm" variant="outline" onClick={() => openEditName(ds)}>
+                            <Pencil className="w-4 h-4" />
+                            <span className="sr-only">{tCommon('edit')}</span>
                           </Button>
                           <Button
                             size="sm"
@@ -163,29 +144,6 @@ export default function DataSourcePage() {
         confirmText={tCommon('delete')}
         cancelText={tCommon('cancel')}
       />
-      <Dialog open={!!editId} onOpenChange={(open) => !open && setEditId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{tCommon('edit')}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleEditName} className="space-y-4">
-            <Input
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              placeholder={tCommon('name')}
-              required
-            />
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditId(null)} type="button">
-                {tCommon('cancel')}
-              </Button>
-              <Button type="submit" disabled={editLoading}>
-                {tCommon('save')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </MainLayout>
   )
 }

@@ -13,11 +13,8 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { OrganizationSwitcher } from '@clerk/nextjs'
-import { ClerkFeatureFlag } from '@/components/clerk-feature-flag'
 import logo from '@/assets/logo.png'
 
 const data = {
@@ -37,9 +34,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <div className={'flex flex-col items-start'}>
-              <div>
+              <a href={'/'}>
                 <img src={logo.src} className={'w-[120px]'} />
-              </div>
+              </a>
             </div>
           </SidebarMenuItem>
         </SidebarMenu>
