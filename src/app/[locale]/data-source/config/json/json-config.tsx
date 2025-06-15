@@ -1,31 +1,166 @@
-"use client";
-import React, { useState } from 'react';
-import { z } from 'zod';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { updateDataSourceConfig, updateDataSourceSchema } from '@/repository/datasource';
-import { convertRowKeysToSchemaFields } from '@/repository/schema';
-import { ArrowLeft } from 'lucide-react';
-import { useRouter, useParams } from 'next/navigation';
-import { DataSourceField, DataSourceSchema, DataSourceType } from '@/types/datasource-schema'
-import JsonConfigForm, { jsonConfigSchema, JsonConfigForm as JsonConfigFormType } from './json-config-form';
-import SampleDataCard from './sample-data-card';
-import SchemaEditor from '../schema-editor';
+'use client'
+import React, { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { useTranslations } from 'next-intl'
+import { isArray, isPlainObject, keys, sortBy } from 'lodash-es'
+import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import SampleDataCard from './sample-data-card'
+import { updateDataSourceConfig } from '@/repository/datasource'
+import { DataSourceSchema, DataSourceType } from '@/types/datasource-schema'
+import { toast } from 'sonner'
 
-export default function JsonConfig({ dataSource }: { dataSource: DataSourceType }) {
-  // Use state for defaultValues so it can be updated when config changes
-  const [defaultValues, setDefaultValues] = useState<JsonConfigFormType>({
+// 工具函数区
+function sortObjectKeys(obj: any): any {
+  if (isArray(obj)) return obj.map(sortObjectKeys)
+  if (isPlainObject(obj)) {
+    return sortBy(keys(obj)).reduce((acc: any, key: string) => {
+      acc[key] = sortObjectKeys(obj[key])
+      return acc
+    }, {})
+  }
+  return obj
+}
+
+function addFieldIds(fields: any, parentKey = ''): any[] {
+  return Object.keys(fields).map((key) => {
+    const value = fields[key]
+    const id = `${parentKey}${key}_${Math.random().toString(36).slice(2, 8)}`
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      return {
+        id,
+        name: key,
+        type: 'object',
+        children: addFieldIds(value, `${key}.`),
+      }
+    } else {
+      return {
+        id,
+        name: key,
+        type: typeof value,
+      }
+    }
+  })
+}
+
+// 表单组件
+const jsonConfigSchema = z.object({
+  url: z.string().url({ message: 'Must be a valid URL' }),
+  totalItemsField: z.string().min(1, 'Required'),
+  itemsField: z.string().min(1, 'Required'),
+  pageSizeField: z.string().optional(),
+  currentPageField: z.string().optional(),
+})
+type JsonConfigForm = z.infer<typeof jsonConfigSchema>
+
+function JsonConfigFormInner({
+  defaultValues,
+  onSubmit,
+  isSubmitting,
+  errors,
+  onFetchSample,
+  fetching,
+}: {
+  defaultValues: JsonConfigForm
+  onSubmit: (values: JsonConfigForm) => void
+  isSubmitting: boolean
+  errors: any
+  onFetchSample: () => void
+  fetching: boolean
+}) {
+  const t = useTranslations('DataSource')
+  const tCommon = useTranslations('Common')
+  const { register, handleSubmit } = useForm<JsonConfigForm>({
+    resolver: zodResolver(jsonConfigSchema),
+    defaultValues,
+  })
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div>
+        <label className="block text-xs font-medium mb-1 text-gray-700">{t('jsonUrl')}</label>
+        <Input {...register('url')} placeholder={t('jsonUrlPlaceholder')} className="w-full" />
+        {errors.url && <span className="text-red-500 text-xs">{errors.url.message}</span>}
+      </div>
+      <div>
+        <label className="block text-xs font-medium mb-1 text-gray-700">
+          {t('totalItemsField')}
+        </label>
+        <Input
+          {...register('totalItemsField')}
+          placeholder={t('totalItemsFieldPlaceholder')}
+          className="w-full"
+        />
+        {errors.totalItemsField && (
+          <span className="text-red-500 text-xs">{errors.totalItemsField.message}</span>
+        )}
+      </div>
+      <div>
+        <label className="block text-xs font-medium mb-1 text-gray-700">{t('itemsField')}</label>
+        <Input
+          {...register('itemsField')}
+          placeholder={t('itemsFieldPlaceholder')}
+          className="w-full"
+        />
+        {errors.itemsField && (
+          <span className="text-red-500 text-xs">{errors.itemsField.message}</span>
+        )}
+      </div>
+      <div>
+        <label className="block text-xs font-medium mb-1 text-gray-700">{t('pageSizeField')}</label>
+        <Input
+          {...register('pageSizeField')}
+          placeholder={t('pageSizeFieldPlaceholder')}
+          className="w-full"
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-medium mb-1 text-gray-700">
+          {t('currentPageField')}
+        </label>
+        <Input
+          {...register('currentPageField')}
+          placeholder={t('currentPageFieldPlaceholder')}
+          className="w-full"
+        />
+      </div>
+      <div className="flex items-center gap-2 mt-2 justify-between">
+        <Button type="submit" disabled={isSubmitting} className="px-6 py-2">
+          {isSubmitting ? tCommon('saving') : tCommon('save')}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onFetchSample}
+          disabled={fetching}
+          className="px-6 py-2"
+        >
+          {fetching ? t('fetching') : t('fetchSample')}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+// 主组件
+export default function JsonConfig({
+  dataSource,
+  onSampleUpdated,
+}: {
+  dataSource: DataSourceType
+  onSampleUpdated?: (sample: any, schema: DataSourceSchema) => void
+}) {
+  const [defaultValues, setDefaultValues] = useState<JsonConfigForm>({
     url: '',
     totalItemsField: '',
     itemsField: '',
     pageField: '',
     pageSizeField: '',
     currentPageField: '',
-    ...dataSource.config
-  });
-
-  // Update defaultValues when dataSource.config changes (after save)
+    ...dataSource.config,
+  })
   React.useEffect(() => {
     setDefaultValues({
       url: '',
@@ -35,231 +170,114 @@ export default function JsonConfig({ dataSource }: { dataSource: DataSourceType 
       pageSizeField: '',
       currentPageField: '',
       ...dataSource.config,
-    });
-  }, [dataSource.config]);
+    })
+  }, [dataSource.config])
 
-  const router = useRouter();
-  const params = useParams();
-  const locale = Array.isArray(params?.locale) ? params.locale[0] : params?.locale || 'en';
-
-  const [sample, setSample] = useState<any>(null);
-  const [schema, setSchema] = useState<DataSourceSchema>(() => {
-    try {
-      const raw: any = dataSource.schema;
-      // If already has id, return as is; else, convert
-      if (raw?.fields.length > 0 && raw.fields[0].id) return raw;
-      return {
-        fields: convertRowKeysToSchemaFields(raw.fields || [])
-      };
-    } catch {
-      return {fields: []};
-    }
-  });
-  const [fetching, setFetching] = useState(false);
-  const [schemaSaving, setSchemaSaving] = useState(false);
-  const [schemaSaved, setSchemaSaved] = useState(false);
-
+  const [sample, setSample] = useState<any>(null)
+  const [fetching, setFetching] = useState(false)
   const [formState, setFormState] = useState({
     isSubmitting: false,
-    isSubmitSuccessful: false,
     errors: {},
-  });
+  })
+  const [lastSchema, setLastSchema] = useState<DataSourceSchema | null>(null)
 
-  const handleFormSubmit = async (values: JsonConfigFormType) => {
-    setFormState(s => ({ ...s, isSubmitting: true }));
-    await updateDataSourceConfig(dataSource.id!, values);
-    setFormState(s => ({ ...s, isSubmitting: false, isSubmitSuccessful: true }));
-    setTimeout(() => setFormState(s => ({ ...s, isSubmitSuccessful: false })), 1200);
-    // Update defaultValues after save
-    setDefaultValues({ ...values });
-  };
+  const t = useTranslations('DataSource')
+  const tCommon = useTranslations('Common')
 
-  const fetchSample = async () => {
-    setFetching(true);
-    setSample(null);
-    try {
-      // Use config values from database (defaultValues)
-      const url = defaultValues.url;
-      const itemsField = defaultValues.itemsField;
-      const totalItemsField = defaultValues.totalItemsField;
-      const pageSizeField = defaultValues.pageSizeField;
-      const currentPageField = defaultValues.currentPageField;
-
-      // Build query params for pagination
-      let fetchUrl = url;
-      const urlObj = new URL(url, window.location.origin);
-      if (pageSizeField) urlObj.searchParams.set(pageSizeField, '10');
-      if (currentPageField) urlObj.searchParams.set(currentPageField, '1');
-      fetchUrl = urlObj.toString();
-
-      const res = await fetch(fetchUrl);
-      let data = await res.json();
-
-      // Drill down to items using itemsField (e.g. 'data.items')
-      let items = data;
-      if (itemsField) {
-        const keys = itemsField.split('.');
-        for (const key of keys) {
-          if (items && typeof items === 'object' && key in items) {
-            items = items[key];
-          } else {
-            items = undefined;
-            break;
-          }
-        }
-      }
-
-      // Optionally get total count using totalItemsField (e.g. 'data.total')
-      let totalItems = undefined;
-      if (totalItemsField) {
-        let total = data;
-        const keys = totalItemsField.split('.');
-        for (const key of keys) {
-          if (total && typeof total === 'object' && key in total) {
-            total = total[key];
-          } else {
-            total = undefined;
-            break;
-          }
-        }
-        totalItems = total;
-      }
-
-      // Infer schema from all keys in all rows (not just first row)
-      let sampleData, schemaData: DataSourceSchema = {
-        fields: []
-      };
-      if (Array.isArray(items) && items?.length > 0) {
-        // Merge all keys from all rows
-        const mergedRow: any = {};
-        for (const row of items) {
-          if (typeof row === 'object' && row !== null) {
-            Object.assign(mergedRow, row);
-          }
-        }
-        sampleData = items[0];
-        schemaData = {
-          fields: convertRowKeysToSchemaFields(mergedRow)
-        };
-      } else if (items && typeof items === 'object') {
-        sampleData = items;
-        schemaData = {
-          fields: convertRowKeysToSchemaFields(items)
-        };
-      } else {
-        sampleData = items;
-        schemaData = {
-          fields: []
-        };
-      }
-      setSample(sampleData);
-      setSchema(schemaData);
-    } catch (e) {
-      setSample({ error: 'Failed to fetch or parse data.' });
-      setSchema({
-        fields: []
-      });
-    }
-    setFetching(false);
-  };
-
-  // Helper to update nested schema fields and handle delete by id
-  function handleSchemaFieldChangePath(id: string, key: string, value: string) {
-    switch (key) {
-      case 'replace':
-        try {
-          const arr = JSON.parse(value);
-          setSchema({
-            ...arr,
-            fields: arr.fields
-          })
-          return;
-        } catch (e: any) {
-          console.error('Invalid JSON for replace:', e);
-          return;
-        }
-    }
-
-    function update(fields: DataSourceField[]): DataSourceField[] {
-      return  fields
-        .map(f => {
-          if (f.id === id) {
-            if (key === 'delete') return undefined;
-            return { ...f, [key]: value };
-          }
-          if (f.children) {
-            const updatedChildren = update(f.children);
-            // If children are all deleted, remove the children property
-            if (updatedChildren?.length === 0) {
-              const { children, ...rest } = f;
-              return rest;
-            }
-            return { ...f, children: updatedChildren };
-          }
-          return f;
-        })
-        .filter((f): f is DataSourceField => Boolean(f))
-    }
-
-    const updated = update(schema.fields);
-
-    setSchema({
-      ...schema,
-      fields: updated
-    });
+  // 提交表单
+  const handleFormSubmit = async (values: JsonConfigForm) => {
+    setFormState((s) => ({ ...s, isSubmitting: true }))
+    await updateDataSourceConfig(dataSource.id!, values)
+    setFormState((s) => ({ ...s, isSubmitting: false }))
+    toast.success(tCommon('saveSuccess'))
+    setDefaultValues({ ...values })
   }
 
-  const saveSchema = async () => {
-    setSchemaSaving(true);
-    await updateDataSourceSchema(dataSource.id!, schema);
-    setSchemaSaving(false);
-    setSchemaSaved(true);
-    setTimeout(() => setSchemaSaved(false), 1200);
-  };
-
-  // Memoize schema and callbacks to avoid unnecessary re-renders
-  const memoizedSchema = React.useMemo(() => schema, [schema]);
-  const memoizedOnFieldChange = React.useCallback(handleSchemaFieldChangePath, [schema]);
-  const memoizedOnSave = React.useCallback(saveSchema, [schema]);
+  // 获取样例并推断 schema
+  const fetchSample = async () => {
+    setFetching(true)
+    setSample(null)
+    try {
+      const url = defaultValues.url
+      const itemsField = defaultValues.itemsField
+      const totalItemsField = defaultValues.totalItemsField
+      const pageSizeField = defaultValues.pageSizeField
+      const currentPageField = defaultValues.currentPageField
+      let fetchUrl = url
+      const urlObj = new URL(url, window.location.origin)
+      if (pageSizeField) urlObj.searchParams.set(pageSizeField, '10')
+      if (currentPageField) urlObj.searchParams.set(currentPageField, '1')
+      fetchUrl = urlObj.toString()
+      const res = await fetch(fetchUrl)
+      let items = await res.json()
+      if (itemsField) {
+        const keys = itemsField.split('.')
+        for (const key of keys) {
+          if (items && typeof items === 'object' && key in items) {
+            items = items[key]
+          } else {
+            items = undefined
+            break
+          }
+        }
+      }
+      let sampleData,
+        schemaData: DataSourceSchema = { fields: [] }
+      if (Array.isArray(items) && items?.length > 0) {
+        const mergedRow: any = {}
+        for (const row of items) {
+          if (typeof row === 'object' && row !== null) {
+            Object.assign(mergedRow, row)
+          }
+        }
+        sampleData = sortObjectKeys(items[0])
+        schemaData = {
+          fields: addFieldIds(sortObjectKeys(mergedRow)),
+        }
+      } else if (items && typeof items === 'object') {
+        sampleData = sortObjectKeys(items)
+        schemaData = {
+          fields: addFieldIds(sortObjectKeys(items)),
+        }
+      } else {
+        sampleData = items
+        schemaData = {
+          fields: [],
+        }
+      }
+      setSample(sampleData)
+      setLastSchema(schemaData)
+    } catch (e) {
+      setSample({ error: 'Failed to fetch or parse data.' })
+      setLastSchema({ fields: [] })
+    }
+    setFetching(false)
+  }
 
   return (
-    <div className="flex flex-col md:flex-row gap-4 w-full max-w-none mx-auto ">
-      {/* Left sticky card: Basic info & actions */}
-      <div className="w-full md:w-80 flex-shrink-0 md:sticky md:top-6 h-fit flex flex-col">
-        <Card className="p-6 mb-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Button type="button" variant="ghost" size="icon" onClick={() => router.push('/' + locale + '/datasource')} className="mr-2">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <span className="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-bold mr-2">JSON</span>
-            <span className="text-lg font-semibold text-gray-800">Data Source</span>
-          </div>
-          <div className="mb-2 text-sm text-gray-700 font-medium">{dataSource.name}</div>
-          <JsonConfigForm
-            defaultValues={defaultValues}
-            onSubmit={handleFormSubmit}
-            isSubmitting={formState.isSubmitting}
-            isSubmitSuccessful={formState.isSubmitSuccessful}
-            errors={formState.errors}
-          />
-        </Card>
-        <SampleDataCard sample={sample} />
-      </div>
-      {/* Right: Schema fields */}
-      <div className="flex-1 min-w-0">
-        <Card className="mb-4 p-4">
-          <SchemaEditor
-            schema={memoizedSchema}
-            onFieldChange={memoizedOnFieldChange}
-            onSave={memoizedOnSave}
-            saving={schemaSaving}
-            saved={schemaSaved}
-            onFetchSample={fetchSample}
-            fetching={fetching}
-          />
-        </Card>
-      </div>
+    <div className="flex flex-col gap-4 w-full max-w-none mx-auto ">
+      <Card className="p-4">
+        <JsonConfigFormInner
+          defaultValues={defaultValues}
+          onSubmit={handleFormSubmit}
+          isSubmitting={formState.isSubmitting}
+          errors={formState.errors}
+          onFetchSample={fetchSample}
+          fetching={fetching}
+        />
+      </Card>
+      <SampleDataCard
+        sample={sample}
+        onUpdateSchema={
+          !sample || !lastSchema
+            ? undefined
+            : () => {
+                if (onSampleUpdated && sample && lastSchema) {
+                  onSampleUpdated(sample, lastSchema)
+                }
+              }
+        }
+      />
     </div>
-  );
+  )
 }
-

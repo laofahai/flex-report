@@ -8,51 +8,50 @@ import {
   MenubarTrigger,
   MenubarContent,
   MenubarItem,
-  MenubarSeparator
+  MenubarSeparator,
 } from '@/components/ui/menubar'
 import { Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 
 interface TableToolbarProps {
-  hotRef: React.RefObject<any>;
-  selectionRange?: Handsontable.CellRange[] | null;
-  onSetSelectionRange?: (ranges: Handsontable.CellRange[] | null) => void;
+  hotRef: React.RefObject<any>
+  selectionRange?: Handsontable.CellRange[] | null
+  onSetSelectionRange?: (ranges: Handsontable.CellRange[] | null) => void
 }
 
-const zIndex = "z-200"
+const zIndex = 'z-200'
 
 export const TableToolbar: React.FC<TableToolbarProps> = ({ hotRef, selectionRange }) => {
-
   const applyStyle = (style: Partial<CSSStyleDeclaration>) => {
-    const hot = hotRef.current.hotInstance;
-    if (!hot) return;
-    selectionRange?.forEach(selected => {
+    const hot = hotRef.current.hotInstance
+    if (!hot) return
+    selectionRange?.forEach((selected) => {
       for (let row = selected.from.row; row <= selected.to.row; row++) {
         for (let col = selected.from.col; col <= selected.to.col; col++) {
-          const meta = hot.getCellMeta(row, col);
-          meta.className = meta.className || '';
+          const meta = hot.getCellMeta(row, col)
+          meta.className = meta.className || ''
 
           // 储存 style 到 cell meta
-          meta.style = { ...(meta.style || {}), ...style };
+          meta.style = { ...(meta.style || {}), ...style }
 
-          hot.setCellMeta(row, col, 'style', meta.style);
+          hot.setCellMeta(row, col, 'style', meta.style)
         }
       }
     })
 
     // 更新渲染器
-    hot.render();
-  };
+    hot.render()
+  }
 
   const mergeCells = () => {
-    const hot = hotRef.current.hotInstance;
-    if (!hot) return;
-    const selected = hot.getSelectedRangeLast();
-    if (!selected) return;
-    const mergePlugin = hot.getPlugin('mergeCells');
+    const hot = hotRef.current.hotInstance
+    if (!hot) return
+    const selected = hot.getSelectedRangeLast()
+    if (!selected) return
+    const mergePlugin = hot.getPlugin('mergeCells')
     // mergePlugin.merge(selected);
-  };
+  }
 
   const handleShowPreview = () => {}
 
@@ -60,14 +59,14 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({ hotRef, selectionRan
     <Menubar>
       <MenubarMenu>
         <MenubarTrigger asChild>
-          <Button size={"sm"} variant={"ghost"} onClick={handleShowPreview}>
+          <Button size={'sm'} variant={'ghost'} onClick={handleShowPreview}>
             <Eye />
             预览
           </Button>
         </MenubarTrigger>
       </MenubarMenu>
       <MenubarMenu>
-      <Separator orientation={"vertical"} />
+        <Separator orientation={'vertical'} />
       </MenubarMenu>
       <MenubarMenu>
         <MenubarTrigger>字体</MenubarTrigger>
@@ -80,7 +79,9 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({ hotRef, selectionRan
       <MenubarMenu>
         <MenubarTrigger>背景</MenubarTrigger>
         <MenubarContent className={zIndex}>
-          <MenubarItem onClick={() => applyStyle({ backgroundColor: 'yellow' })}>黄色背景</MenubarItem>
+          <MenubarItem onClick={() => applyStyle({ backgroundColor: 'yellow' })}>
+            黄色背景
+          </MenubarItem>
         </MenubarContent>
       </MenubarMenu>
       <MenubarMenu>
@@ -90,7 +91,5 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({ hotRef, selectionRan
         </MenubarContent>
       </MenubarMenu>
     </Menubar>
-  );
-};
-
-
+  )
+}

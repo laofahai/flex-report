@@ -29,7 +29,7 @@ export function NavMain({
     },
     {
       title: t('dataDict', { default: 'Data Dictionary' }),
-      url: `/${locale}/data-dict`,
+      url: `/${locale}/data-source/dict`,
       icon: Database,
       isActive: false,
     },

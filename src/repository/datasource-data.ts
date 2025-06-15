@@ -1,6 +1,5 @@
 import { DataSourceType } from '@/types/datasource-schema'
 import { getDataSourceById } from '@/repository/datasource'
-import { JsonConfigForm } from '@/app/[locale]/data-source/config/json/json-config-form'
 import { get } from 'lodash-es'
 import { DatasourceData } from '@/types/datasource-data'
 
@@ -28,7 +27,7 @@ export const fetchJsonData = async (options: FetchJsonDataProps): Promise<Dataso
     datasource = await getDataSourceById(datasourceId!)
   }
 
-  const config = datasource.config as JsonConfigForm
+  const config = datasource.config
 
   // build url
   if (!config.url) {

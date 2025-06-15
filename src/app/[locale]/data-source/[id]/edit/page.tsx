@@ -1,26 +1,35 @@
-import { getDataSourceById, getDataSources } from '@/repository/datasource'
-import { notFound } from 'next/navigation'
-import JsonConfig from '../../config/json/json-config'
+import { getDataSourceById } from '@/repository/datasource'
 import MainLayout from '../../../../layouts/main-layout'
+import { getTranslations } from 'next-intl/server'
+import { convertRowKeysToSchemaFields } from '@/repository/schema'
+import { DataSourceSchema } from '@/types/datasource-schema'
+import EditDsPageClient from '@/components/data-source/edit-ds-page-client'
 
-export default async function EditDataSourcePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default async function EditDataSourcePage({
+  params,
+}: {
+  params: Promise<{ id: string; locale: string }>
+}) {
+  const { id, locale } = await params
 
-  const ds = await getDataSourceById(id)
+  let [ds, t, tCommon] = await Promise.all([
+    getDataSourceById(id),
+    getTranslations({ locale, namespace: 'DataSource' }),
+    getTranslations({ locale, namespace: 'Common' }),
+  ])
 
-  let content = null
-  if (ds.type === 'JSON') {
-    content = <JsonConfig dataSource={ds} />
-  } else if (ds.type === 'MySQL') {
-    content = <div>MySQL Data Source Config Page (ID: {ds.id})</div>
-  } else {
-    content = <div>Unsupported data source type: {ds.type}</div>
+  let initialSchema: DataSourceSchema = { fields: [] }
+  try {
+    const raw: any = ds.schema
+    if (raw?.fields.length > 0 && raw.fields[0].id) initialSchema = raw
+    else initialSchema = { fields: convertRowKeysToSchemaFields(raw?.fields || []) }
+  } catch {
+    initialSchema = { fields: [] }
   }
 
   return (
-    <MainLayout>
-      <h1 className="text-2xl font-bold ">Edit Data Source: {ds.name}</h1>
-      {content}
+    <MainLayout title={tCommon('edit')}>
+      <EditDsPageClient ds={ds} initialSchema={initialSchema} />
     </MainLayout>
   )
 }
