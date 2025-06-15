@@ -1,6 +1,6 @@
 import { getTableDesignById } from '@/repository/table-design'
 import { getDataSourceById } from '@/repository/datasource'
-import { fetchJsonData } from '@/repository/datasource-data'
+import { fetchJsonData } from '@/repository/datasource-data-json'
 import { toExcelTableData } from '@/lib/excel-table-data'
 import ExcelJS from 'exceljs'
 import { ExcelDefaultColumnWidth, ExcelDefaultRowHeight } from '@/lib/defaults'

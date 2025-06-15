@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { HotTable } from '@handsontable/react'
 import { getTableDesignById } from '@/repository/table-design'
-import { fetchJsonData } from '@/repository/datasource-data'
+import { fetchJsonData } from '@/repository/datasource-data-json'
 import { TableDesign } from '@/types/table-design'
 import { toExcelTableData } from '@/lib/excel-table-data'
 import { HyperFormula } from 'hyperformula'

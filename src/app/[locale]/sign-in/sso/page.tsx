@@ -14,6 +14,23 @@ export default function SSOSignInPage() {
   const redirectUrl = searchParams.get('redirect_url') || `/${params.locale}`
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      // 支持所有常见参数名，和 get-json-token.ts 的 key 规则一致
+      const signInToken = url.searchParams.get('sign_in_token')
+      if (signInToken) {
+        sessionStorage.setItem('json_embed_token_sign_in_token', signInToken)
+      }
+      const code = url.searchParams.get('code')
+      if (code) {
+        sessionStorage.setItem('json_embed_code_token_code', code)
+      }
+      // 如果没开启 Clerk，直接跳转
+      if (!client) {
+        router.replace(redirectUrl)
+        return
+      }
+    }
     if (!token || !client) {
       console.error('SSO token or Clerk client is missing')
       return

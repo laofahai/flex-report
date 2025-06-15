@@ -2,6 +2,8 @@ import { DataSourceType } from '@/types/datasource-schema'
 import { getDataSourceById } from '@/repository/datasource'
 import { get } from 'lodash-es'
 import { DatasourceData } from '@/types/datasource-data'
+import { getJsonToken } from '@/repository/json/get-json-token'
+import { sendJsonToken } from '@/repository/json/send-json-token'
 
 /**
  *
@@ -42,7 +44,14 @@ export const fetchJsonData = async (options: FetchJsonDataProps): Promise<Dataso
   url.searchParams.set(config.currentPageField || 'page', page.toString())
   url.searchParams.set(config.pageSizeField || 'pageSize', pageSize.toString())
 
-  const data = await fetch(url.toString())
+  // 获取 token 并处理发送方式
+  const token = await getJsonToken(config)
+  let headers: Record<string, string> = {}
+  const sendResult = sendJsonToken({ url, headers, token, config })
+  let finalUrl = sendResult.url.toString()
+  headers = sendResult.headers
+
+  const data = await fetch(finalUrl, { headers })
   const raw = await data.json()
 
   let total = config.totalItemsField ? get(raw, config.totalItemsField) : raw?.length
@@ -70,7 +79,11 @@ export const fetchJsonData = async (options: FetchJsonDataProps): Promise<Dataso
         const pageUrl = new URL(config.url)
         pageUrl.searchParams.set(config.currentPageField || 'page', p.toString())
         pageUrl.searchParams.set(config.pageSizeField || 'pageSize', pageSize.toString())
-        return fetch(pageUrl.toString()).then((res) => res.json())
+        // 每页都要带 token
+        const sendResult = sendJsonToken({ url: pageUrl, headers: {}, token, config })
+        return fetch(sendResult.url.toString(), { headers: sendResult.headers }).then((res) =>
+          res.json()
+        )
       })
       const batchRaws = await Promise.all(batchPromises)
       for (const pageRaw of batchRaws) {
