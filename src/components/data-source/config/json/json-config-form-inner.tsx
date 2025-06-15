@@ -1,10 +1,19 @@
 import React from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, FormProvider, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslations } from 'next-intl'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { JsonConfigForm, JsonConfigSchema } from '@/types/json-data-source'
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
+import { JsonAuthTypeField } from './json-auth-type-field'
 
 export default function JsonConfigFormInner({
   defaultValues,
@@ -23,73 +32,110 @@ export default function JsonConfigFormInner({
 }) {
   const t = useTranslations('DataSource')
   const tCommon = useTranslations('Common')
-  const { register, handleSubmit } = useForm<JsonConfigForm>({
+  const methods = useForm<JsonConfigForm>({
     resolver: zodResolver(JsonConfigSchema),
     defaultValues,
   })
+  const authType = useWatch({ control: methods.control, name: 'authType' })
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div>
-        <label className="block text-xs font-medium mb-1 text-gray-700">{t('jsonUrl')}</label>
-        <Input {...register('url')} placeholder={t('jsonUrlPlaceholder')} className="w-full" />
-        {errors.url && <span className="text-red-500 text-xs">{errors.url.message}</span>}
-      </div>
-      <div>
-        <label className="block text-xs font-medium mb-1 text-gray-700">
-          {t('totalItemsField')}
-        </label>
-        <Input
-          {...register('totalItemsField')}
-          placeholder={t('totalItemsFieldPlaceholder')}
-          className="w-full"
-        />
-        {errors.totalItemsField && (
-          <span className="text-red-500 text-xs">{errors.totalItemsField.message}</span>
-        )}
-      </div>
-      <div>
-        <label className="block text-xs font-medium mb-1 text-gray-700">{t('itemsField')}</label>
-        <Input
-          {...register('itemsField')}
-          placeholder={t('itemsFieldPlaceholder')}
-          className="w-full"
-        />
-        {errors.itemsField && (
-          <span className="text-red-500 text-xs">{errors.itemsField.message}</span>
-        )}
-      </div>
-      <div>
-        <label className="block text-xs font-medium mb-1 text-gray-700">{t('pageSizeField')}</label>
-        <Input
-          {...register('pageSizeField')}
-          placeholder={t('pageSizeFieldPlaceholder')}
-          className="w-full"
-        />
-      </div>
-      <div>
-        <label className="block text-xs font-medium mb-1 text-gray-700">
-          {t('currentPageField')}
-        </label>
-        <Input
-          {...register('currentPageField')}
-          placeholder={t('currentPageFieldPlaceholder')}
-          className="w-full"
-        />
-      </div>
-      <div className="flex items-center gap-2 mt-2 justify-between">
-        <Button type="submit" disabled={isSubmitting} className="px-6 py-2">
-          {isSubmitting ? tCommon('saving') : tCommon('save')}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={onFetchSample}
-          disabled={fetching}
-          className="px-6 py-2"
-        >
-          {fetching ? t('fetching') : t('fetchSample')}
-        </Button>
-      </div>
-    </form>
+    <FormProvider {...methods}>
+      <Form {...methods}>
+        <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            name="url"
+            control={methods.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('jsonUrl')}</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder={t('jsonUrlPlaceholder')} className="w-full" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            name="totalItemsField"
+            control={methods.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('totalItemsField')}</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder={t('totalItemsFieldPlaceholder')}
+                    className="w-full"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            name="itemsField"
+            control={methods.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('itemsField')}</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder={t('itemsFieldPlaceholder')} className="w-full" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            name="pageSizeField"
+            control={methods.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('pageSizeField')}</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder={t('pageSizeFieldPlaceholder')}
+                    className="w-full"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            name="currentPageField"
+            control={methods.control}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('currentPageField')}</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder={t('currentPageFieldPlaceholder')}
+                    className="w-full"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <JsonAuthTypeField />
+          <div className="flex items-center gap-2 mt-2 justify-between">
+            <Button type="submit" disabled={isSubmitting} className="px-6 py-2">
+              {isSubmitting ? tCommon('saving') : tCommon('save')}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onFetchSample}
+              disabled={fetching}
+              className="px-6 py-2"
+            >
+              {t('fetchSample')}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </FormProvider>
   )
 }
