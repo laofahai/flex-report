@@ -36,8 +36,6 @@ export default function JsonConfigFormInner({
     resolver: zodResolver(JsonConfigSchema),
     defaultValues,
   })
-  const authType = useWatch({ control: methods.control, name: 'authType' })
-
   return (
     <FormProvider {...methods}>
       <Form {...methods}>

@@ -132,6 +132,7 @@ export const ExcelTable: React.FC<ExcelTableProps> = ({
           hotRef={hotRef}
           selectionRange={selectionRange}
           onSetSelectionRange={setSelectionRange}
+          tableDesignId={tableDesign.id!}
         />
       </div>
       <HotTable
