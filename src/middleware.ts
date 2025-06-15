@@ -15,11 +15,11 @@ const publicRoutes = [
   '/', // 根路径
   '/favicon.ico',
   ...routing.locales.map((locale) => `/${locale}/sign-in(.*)?`), // 登录页
-  ...routing.locales.map((locale) => `/${locale}/sign-up`),
+  // ...routing.locales.map((locale) => `/${locale}/sign-up`),
   ...routing.locales.map((locale) => `/${locale}/error`),
   ...routing.locales.map((locale) => `/${locale}/sso-callback`), // 添加 Clerk 回调
   // '/api(.*)', // API路由
-  '/trpc(.*)', // tRPC路由
+  // '/trpc(.*)', // tRPC路由
 ]
 
 const isPublicRoute = hasClerk ? createRouteMatcher(publicRoutes) : (req: any) => true
