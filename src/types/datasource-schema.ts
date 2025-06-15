@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import { BaseTableZod, DataTypeEnum } from '@/types/common'
-import { InputJsonValue } from '@/generated/prisma/runtime/library'
 
 export interface DataSourceConfig {}
 
