@@ -1,16 +1,12 @@
-import { NextResponse } from 'next/server'
+import { NextMiddleware, NextResponse } from 'next/server'
 import createIntlMiddleware from 'next-intl/middleware'
 import { routing } from './i18n/routing'
+import { auth, clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
 // 动态引入 Clerk 相关
 const hasClerk = Boolean(
   process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && process.env.CLERK_SECRET_KEY
 )
-let clerkMiddleware: any, createRouteMatcher: any
-if (hasClerk) {
-  // 只有在需要时才 require，避免构建报错
-  ;({ clerkMiddleware, createRouteMatcher } = require('@clerk/nextjs/server'))
-}
 
 const intlMiddleware = createIntlMiddleware(routing)
 
@@ -28,7 +24,7 @@ const publicRoutes = [
 
 const isPublicRoute = hasClerk ? createRouteMatcher(publicRoutes) : (req: any) => true
 
-const customMiddleware = async (req: any) => {
+export default clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl
   const isPublic = isPublicRoute(req)
 
@@ -37,7 +33,6 @@ const customMiddleware = async (req: any) => {
     const acceptLang = req.headers.get('accept-language') || ''
     const supported = routing.locales
     let matched = routing.defaultLocale
-
     for (const lang of acceptLang.split(',')) {
       const code = lang.split(';')[0].trim().split('-')[0]
       if (supported.includes(code as any)) {
@@ -45,19 +40,35 @@ const customMiddleware = async (req: any) => {
         break
       }
     }
-
     const url = req.nextUrl.clone()
     url.pathname = `/${matched}`
     return NextResponse.redirect(url, 307)
   }
 
-  // 只用 next-intl
-  return intlMiddleware(req)
-}
+  // 2. Clerk 认证拦截（非 public 路由时）
+  if (isPublic) {
+    return intlMiddleware(req)
+  }
 
-export default hasClerk
-  ? clerkMiddleware(async (auth: any, req: any) => customMiddleware(req))
-  : customMiddleware
+  // 3. 获取用户认证状态 - 修正类型问题
+  const session = await auth()
+  const userId = session?.userId || null
+
+  // 4. 处理受保护路由 - 用户已登录
+  if (userId) {
+    return intlMiddleware(req)
+  }
+
+  // 5. 用户未登录时重定向到登录页
+  const localeMatch = pathname.match(/^\/(\w{2})(\/|$)/)
+  const locale = localeMatch ? localeMatch[1] : routing.defaultLocale
+
+  // 创建登录URL
+  const signInUrl = new URL(`/${locale}/sign-in`, req.url)
+  signInUrl.searchParams.set('redirect_url', req.nextUrl.pathname)
+
+  return NextResponse.redirect(signInUrl, 307)
+})
 
 export const config = {
   matcher: [

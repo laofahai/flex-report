@@ -59,26 +59,9 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
     // mergePlugin.merge(selected);
   }
 
-  const handleShowPreview = () => {
-    if (tableDesignId) {
-      window.open(`/excel/${tableDesignId}/preview`, '_blank', 'noopener,noreferrer')
-    }
-  }
-
   return (
     <>
       <Menubar>
-        <MenubarMenu>
-          <MenubarTrigger asChild>
-            <Button size={'sm'} variant={'ghost'} onClick={handleShowPreview}>
-              <Eye />
-              预览
-            </Button>
-          </MenubarTrigger>
-        </MenubarMenu>
-        <MenubarMenu>
-          <Separator orientation={'vertical'} />
-        </MenubarMenu>
         <MenubarMenu>
           <MenubarTrigger>字体</MenubarTrigger>
           <MenubarContent className={zIndex}>
