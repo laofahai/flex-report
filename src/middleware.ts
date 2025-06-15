@@ -9,11 +9,11 @@ const intlMiddleware = createIntlMiddleware(routing)
 const publicRoutes = [
   '/', // 根路径
   '/favicon.ico',
-  ...routing.locales.map((locale) => `/${locale}/sign-in`),
+  ...routing.locales.map((locale) => `/${locale}/sign-in(.*)?`), // 登录页
   ...routing.locales.map((locale) => `/${locale}/sign-up`),
   ...routing.locales.map((locale) => `/${locale}/error`),
   ...routing.locales.map((locale) => `/${locale}/sso-callback`), // 添加 Clerk 回调
-  '/api(.*)', // API路由
+  // '/api(.*)', // API路由
   '/trpc(.*)', // tRPC路由
 ]
 
@@ -50,7 +50,6 @@ export default clerkMiddleware(async (auth, req) => {
   // 3. 获取用户认证状态 - 修正类型问题
   const session = await auth()
   const userId = session?.userId || null
-  console.log(1111, Object.keys(session), userId)
 
   // 4. 处理受保护路由 - 用户已登录
   if (userId) {

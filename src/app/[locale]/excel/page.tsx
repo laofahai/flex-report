@@ -60,7 +60,7 @@ export default function TableDesignListPage() {
       <div>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">所有表格设计</h1>
-          <Button onClick={() => router.push('./excel/designer')}>+ 新增表格设计</Button>
+          <Button onClick={() => router.push('./excel/design')}>+ 新增表格设计</Button>
         </div>
         <div className="grid gap-4">
           {designs.length === 0 && <div>暂无数据</div>}
@@ -73,7 +73,7 @@ export default function TableDesignListPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => router.push(`./excel/designer?id=${design.id}`)}
+                  onClick={() => router.push(`./excel/design?id=${design.id}`)}
                 >
                   编辑
                 </Button>
