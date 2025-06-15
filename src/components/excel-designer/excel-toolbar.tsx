@@ -13,16 +13,22 @@ import {
 import { Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Preview } from './preview'
 
 interface TableToolbarProps {
   hotRef: React.RefObject<any>
   selectionRange?: Handsontable.CellRange[] | null
   onSetSelectionRange?: (ranges: Handsontable.CellRange[] | null) => void
+  tableDesignId: string
 }
 
 const zIndex = 'z-200'
 
-export const TableToolbar: React.FC<TableToolbarProps> = ({ hotRef, selectionRange }) => {
+export const TableToolbar: React.FC<TableToolbarProps> = ({
+  hotRef,
+  selectionRange,
+  tableDesignId,
+}) => {
   const applyStyle = (style: Partial<CSSStyleDeclaration>) => {
     const hot = hotRef.current.hotInstance
     if (!hot) return
@@ -53,43 +59,49 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({ hotRef, selectionRan
     // mergePlugin.merge(selected);
   }
 
-  const handleShowPreview = () => {}
+  const handleShowPreview = () => {
+    if (tableDesignId) {
+      window.open(`/excel/${tableDesignId}/preview`, '_blank', 'noopener,noreferrer')
+    }
+  }
 
   return (
-    <Menubar>
-      <MenubarMenu>
-        <MenubarTrigger asChild>
-          <Button size={'sm'} variant={'ghost'} onClick={handleShowPreview}>
-            <Eye />
-            预览
-          </Button>
-        </MenubarTrigger>
-      </MenubarMenu>
-      <MenubarMenu>
-        <Separator orientation={'vertical'} />
-      </MenubarMenu>
-      <MenubarMenu>
-        <MenubarTrigger>字体</MenubarTrigger>
-        <MenubarContent className={zIndex}>
-          <MenubarItem onClick={() => applyStyle({ fontWeight: 'bold' })}>加粗</MenubarItem>
-          <MenubarItem onClick={() => applyStyle({ fontSize: '16px' })}>字体大小</MenubarItem>
-          <MenubarItem onClick={() => applyStyle({ color: 'red' })}>字体颜色</MenubarItem>
-        </MenubarContent>
-      </MenubarMenu>
-      <MenubarMenu>
-        <MenubarTrigger>背景</MenubarTrigger>
-        <MenubarContent className={zIndex}>
-          <MenubarItem onClick={() => applyStyle({ backgroundColor: 'yellow' })}>
-            黄色背景
-          </MenubarItem>
-        </MenubarContent>
-      </MenubarMenu>
-      <MenubarMenu>
-        <MenubarTrigger>单元格</MenubarTrigger>
-        <MenubarContent className={zIndex}>
-          <MenubarItem onClick={mergeCells}>合并单元格</MenubarItem>
-        </MenubarContent>
-      </MenubarMenu>
-    </Menubar>
+    <>
+      <Menubar>
+        <MenubarMenu>
+          <MenubarTrigger asChild>
+            <Button size={'sm'} variant={'ghost'} onClick={handleShowPreview}>
+              <Eye />
+              预览
+            </Button>
+          </MenubarTrigger>
+        </MenubarMenu>
+        <MenubarMenu>
+          <Separator orientation={'vertical'} />
+        </MenubarMenu>
+        <MenubarMenu>
+          <MenubarTrigger>字体</MenubarTrigger>
+          <MenubarContent className={zIndex}>
+            <MenubarItem onClick={() => applyStyle({ fontWeight: 'bold' })}>加粗</MenubarItem>
+            <MenubarItem onClick={() => applyStyle({ fontSize: '16px' })}>字体大小</MenubarItem>
+            <MenubarItem onClick={() => applyStyle({ color: 'red' })}>字体颜色</MenubarItem>
+          </MenubarContent>
+        </MenubarMenu>
+        <MenubarMenu>
+          <MenubarTrigger>背景</MenubarTrigger>
+          <MenubarContent className={zIndex}>
+            <MenubarItem onClick={() => applyStyle({ backgroundColor: 'yellow' })}>
+              黄色背景
+            </MenubarItem>
+          </MenubarContent>
+        </MenubarMenu>
+        <MenubarMenu>
+          <MenubarTrigger>单元格</MenubarTrigger>
+          <MenubarContent className={zIndex}>
+            <MenubarItem onClick={mergeCells}>合并单元格</MenubarItem>
+          </MenubarContent>
+        </MenubarMenu>
+      </Menubar>
+    </>
   )
 }

@@ -24,14 +24,21 @@ export default async function RootLayout({
     notFound()
   }
 
+  const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
   const clerkLocalization = locale === 'zh' ? clerkLocals.zhCN : clerkLocals.enUS
-  return (
-    <ClerkProvider localization={clerkLocalization} afterSignOutUrl={`/${locale}/sign-in`}>
-      <html lang={locale}>
-        <body className={`antialiased`}>
-          <NextIntlClientProvider locale={locale}>{children}</NextIntlClientProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+  const content = (
+    <html lang={locale}>
+      <body className={`antialiased`}>
+        <NextIntlClientProvider locale={locale}>{children}</NextIntlClientProvider>
+      </body>
+    </html>
   )
+  if (hasClerk) {
+    return (
+      <ClerkProvider localization={clerkLocalization} afterSignOutUrl={`/${locale}/sign-in`}>
+        {content}
+      </ClerkProvider>
+    )
+  }
+  return content
 }

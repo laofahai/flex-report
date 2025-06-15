@@ -122,7 +122,7 @@ export function Preview({ tableDesignId }: PreviewProps) {
           data={data?.length > 0 ? data : []} // 默认数据传空时给 [[""]]
           colHeaders={true}
           rowHeaders={true}
-          height={`calc(100vh - 200px)`} // 根据需要调整高度
+          height={`calc(100vh - 220px)`} // 根据需要调整高度
           colWidths={ExcelDefaultColumnWidth} // ✅ 建议给默认列宽
           rowHeights={expandedTableSchema?.rows.map((row) => row.height || ExcelDefaultRowHeight)} // 行高支持
           manualRowMove={true}

@@ -53,7 +53,15 @@ export default function TableDesignListPage() {
     setDeleting(false)
   }
 
-  if (loading) return <div>加载中...</div>
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-lg text-gray-500">加载中...</div>
+        </div>
+      </MainLayout>
+    )
+  }
 
   return (
     <MainLayout>
