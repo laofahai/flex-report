@@ -24,7 +24,18 @@ export default function SignInPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <SignIn routing="path" path={`/${locale}/sign-in`} fallbackRedirectUrl={redirectUrl} />
+      <SignIn
+        routing="path"
+        path={`/${locale}/sign-in`}
+        fallbackRedirectUrl={redirectUrl}
+        signUpUrl=""
+        appearance={{
+          elements: {
+            footerAction__signUp: { display: 'none' },
+            footerAction__signIn: { display: 'none' },
+          },
+        }}
+      />
     </div>
   )
 }

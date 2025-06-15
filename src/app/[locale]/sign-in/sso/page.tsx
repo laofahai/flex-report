@@ -67,4 +67,3 @@ export default function SSOSignInPage() {
     </div>
   )
 }
-

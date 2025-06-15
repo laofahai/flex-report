@@ -24,7 +24,7 @@ export default function SignUpPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <SignUp routing="path" path={`/${locale}/sign-up`} fallbackRedirectUrl={redirectUrl} />
+      {/*<SignUp routing="path" path={`/${locale}/sign-up`} fallbackRedirectUrl={redirectUrl} />*/}
     </div>
   )
 }
