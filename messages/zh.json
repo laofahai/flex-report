@@ -35,10 +35,11 @@
     "savingSchema": "正在保存结构..."
   },
   "NavMain": {
-    "platform": "平台",
+    "report": "报表",
     "datasource": "数据源管理",
     "dataDict": "数据字典",
-    "excel": "Excel"
+    "excel": "Excel",
+    "configure": "配置"
   },
   "DataDict": {
     "title": "数据字典管理",

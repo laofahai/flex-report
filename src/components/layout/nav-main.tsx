@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronRight, type LucideIcon } from 'lucide-react'
+import { ChevronRight, type LucideIcon, Sheet } from 'lucide-react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Database } from 'lucide-react'
 
@@ -22,34 +22,22 @@ export function NavMain({
   const locale = useLocale()
   const menuItems = [
     {
-      title: t('datasource'),
-      url: `/${locale}/data-source`,
-      icon: Database,
-      isActive: false,
-    },
-    {
-      title: t('dataDict', { default: 'Data Dictionary' }),
-      url: `/${locale}/data-source/dict`,
-      icon: Database,
-      isActive: false,
-    },
-    {
       title: t('excel', { default: 'Excel Designer' }),
       url: `/${locale}/excel`,
-      icon: Database,
+      icon: Sheet,
       isActive: false,
     },
   ]
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>{t('platform')}</SidebarGroupLabel>
+      <SidebarGroupLabel>{t('report')}</SidebarGroupLabel>
       <SidebarMenu>
         {menuItems.map((item) => (
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip={item.title}>
                 <a href={item.url} className="flex items-center">
-                  <item.icon className="w-4 h-4 mr-2" />
+                  <item.icon className="w-4 h-4" />
                   <span>{item.title}</span>
                 </a>
               </SidebarMenuButton>

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import SchemaEditor from '@/app/[locale]/data-source/config/schema-editor'
+import SchemaEditor from '@/components/data-source/config/schema-editor'
 import { updateDataSourceSchema } from '@/repository/datasource'
 import { DataSourceSchema } from '@/types/datasource-schema'
 

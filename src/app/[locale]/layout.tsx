@@ -4,15 +4,8 @@ import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { routing } from '@/i18n/routing'
 import { notFound } from 'next/navigation'
 import React from 'react'
-import {
-  ClerkProvider,
-  SignInButton,
-  SignUpButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from '@clerk/nextjs'
-import { zhCN, enUS } from '@clerk/localizations'
+import { ClerkProvider } from '@clerk/nextjs'
+import * as clerkLocals from '@clerk/localizations'
 
 export const metadata: Metadata = {
   title: 'Create Next App',
@@ -30,7 +23,8 @@ export default async function RootLayout({
   if (!hasLocale(routing.locales, locale)) {
     notFound()
   }
-  const clerkLocalization = locale === 'zh' ? zhCN : enUS
+
+  const clerkLocalization = locale === 'zh' ? clerkLocals.zhCN : clerkLocals.enUS
   return (
     <ClerkProvider localization={clerkLocalization} afterSignOutUrl={`/${locale}/sign-in`}>
       <html lang={locale}>

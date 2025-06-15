@@ -13,6 +13,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
+import { LanguageSwitchButton } from '@/components/language-switch-button'
 
 interface PagePath {
   name: string
@@ -31,8 +32,8 @@ export default function MainLayout({ children, title, titleNode, paths }: Props)
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4">
+        <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+          <div className="flex items-center flex-1 gap-2 px-4">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
             {titleNode ? (
@@ -62,6 +63,9 @@ export default function MainLayout({ children, title, titleNode, paths }: Props)
                 </BreadcrumbList>
               </Breadcrumb>
             )}
+          </div>
+          <div className={'mr-4'}>
+            <LanguageSwitchButton />
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>

@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react'
-import JsonConfig from '../../app/[locale]/data-source/config/json/json-config'
+import JsonConfig from '@/components/data-source/config/json/json-config'
 import DataSourceBasicForm from '@/components/data-source/data-source-basic-form'
 import SchemaEditorWrapper from '@/components/data-source/schema-editor-wrapper'
 import { DataSourceSchema, DataSourceType } from '@/types/datasource-schema'

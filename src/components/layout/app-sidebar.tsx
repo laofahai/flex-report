@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 
 import { NavMain } from '@/components/layout/nav-main'
-import { NavProjects } from '@/components/layout/nav-projects'
+import { NavConfigure } from '@/components/layout/nav-configure'
 import { NavSecondary } from '@/components/layout/nav-secondary'
 import { NavUser } from '@/components/layout/nav-user'
 import {
@@ -162,7 +162,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain />
-        <NavProjects projects={data.projects} />
+        <NavConfigure projects={data.projects} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

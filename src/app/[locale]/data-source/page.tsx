@@ -123,13 +123,6 @@ export default function DataSourcePage() {
                       <TableCell className="font-medium">{ds.name}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => router.push(`./data-source/${ds.id}/edit`)}
-                          >
-                            {t('schemaManage')}
-                          </Button>
                           <Button size="sm" variant="secondary" onClick={() => openEditName(ds)}>
                             {tCommon('edit')}
                           </Button>

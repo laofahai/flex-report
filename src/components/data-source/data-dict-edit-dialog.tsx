@@ -56,7 +56,7 @@ export default function DataDictEditDialog({
             className="text-xs"
           />
           <div className="border rounded p-2">
-            <div className="font-semibold mb-2">{tCommon('items')}</div>
+            <div className="font-semibold mb-2">{t('items')}</div>
             {editDraft.items.map((item, i) => (
               <div key={i} className="flex gap-2 mb-1 items-center">
                 <Input
