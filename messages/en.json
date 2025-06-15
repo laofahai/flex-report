@@ -31,7 +31,8 @@
     "fieldDeleted": "Field deleted",
     "fieldHeader": "Field / Label",
     "typeHeader": "Type",
-    "filterableHeader": "Filterable"
+    "filterableHeader": "Filterable",
+    "savingSchema": "Saving schema..."
   },
   "NavMain": {
     "platform": "Platform",

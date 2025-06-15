@@ -32,8 +32,18 @@ export default function SchemaEditor({ schema, onFieldChange, onSave, saving, sa
   const [dictionaries, setDictionaries] = useState<{ id: string; name: string }[]>([])
   const [addDialogOpen, setAddDialogOpen] = useState(false)
 
+  const [ready, setReady] = useState(false)
+
   useEffect(() => {
-    getDictionaries().then(setDictionaries)
+    getDictionaries().then((data) => {
+      setDictionaries(
+        data.map((dict: any) => ({
+          id: dict.id,
+          name: dict.name,
+        }))
+      )
+      setReady(true)
+    })
   }, [])
 
   useEffect(() => {
@@ -55,59 +65,61 @@ export default function SchemaEditor({ schema, onFieldChange, onSave, saving, sa
   )
 
   return (
-    <>
-      <div>
-        <div className="font-semibold mb-2 flex justify-between items-center">
-          <div>{t('schemaTitle')}</div>
-          <div className="flex items-center gap-2">
-            <Button type="button" onClick={() => setAddDialogOpen(true)} variant="outline">
-              + {t('addField')}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                onSave()
-                toast.info(t('savingSchema'))
-              }}
-              disabled={saving || schema.fields?.length === 0}
-            >
-              {saving ? tCommon('saving') : t('saveSchema')}
-            </Button>
+    ready && (
+      <>
+        <div>
+          <div className="font-semibold mb-2 flex justify-between items-center">
+            <div>{t('schemaTitle')}</div>
+            <div className="flex items-center gap-2">
+              <Button type="button" onClick={() => setAddDialogOpen(true)} variant="outline">
+                + {t('addField')}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  onSave()
+                  toast.info(t('savingSchema'))
+                }}
+                disabled={saving || schema.fields?.length === 0}
+              >
+                {saving ? tCommon('saving') : t('saveSchema')}
+              </Button>
+            </div>
           </div>
+          <SchemaTable
+            schema={schema}
+            onFieldChange={stableOnFieldChange}
+            onDeleteRequest={stableOnDeleteRequest}
+            dictionaries={dictionaries}
+            typeOptions={typeOptions}
+            filterTypeOptions={filterTypeOptions}
+            expanded={expanded}
+            setExpanded={setExpanded}
+          />
+          <ConfirmDeleteDialog
+            open={deleteDialogOpen}
+            setOpen={setDeleteDialogOpen}
+            onConfirm={() => {
+              if (deleteRowId) {
+                onFieldChange(deleteRowId, 'delete', '')
+                toast.success(t('fieldDeleted'))
+              }
+              setDeleteRowId(null)
+              setDeleteDialogOpen(false)
+            }}
+            title={t('deleteField')}
+            description={t('deleteFieldConfirm')}
+          />
+          <AddFieldDialog
+            open={addDialogOpen}
+            setOpen={setAddDialogOpen}
+            typeOptions={typeOptions}
+            filterTypeOptions={filterTypeOptions}
+            schema={schema}
+            onFieldChange={onFieldChange}
+          />
         </div>
-        <SchemaTable
-          schema={schema}
-          onFieldChange={stableOnFieldChange}
-          onDeleteRequest={stableOnDeleteRequest}
-          dictionaries={dictionaries}
-          typeOptions={typeOptions}
-          filterTypeOptions={filterTypeOptions}
-          expanded={expanded}
-          setExpanded={setExpanded}
-        />
-        <ConfirmDeleteDialog
-          open={deleteDialogOpen}
-          setOpen={setDeleteDialogOpen}
-          onConfirm={() => {
-            if (deleteRowId) {
-              onFieldChange(deleteRowId, 'delete', '')
-              toast.success(t('fieldDeleted'))
-            }
-            setDeleteRowId(null)
-            setDeleteDialogOpen(false)
-          }}
-          title={t('deleteField')}
-          description={t('deleteFieldConfirm')}
-        />
-        <AddFieldDialog
-          open={addDialogOpen}
-          setOpen={setAddDialogOpen}
-          typeOptions={typeOptions}
-          filterTypeOptions={filterTypeOptions}
-          schema={schema}
-          onFieldChange={onFieldChange}
-        />
-      </div>
-    </>
+      </>
+    )
   )
 }

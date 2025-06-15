@@ -31,7 +31,8 @@
     "fieldDeleted": "字段已删除",
     "fieldHeader": "字段/标签",
     "typeHeader": "类型",
-    "filterableHeader": "可筛选"
+    "filterableHeader": "可筛选",
+    "savingSchema": "正在保存结构..."
   },
   "NavMain": {
     "platform": "平台",
