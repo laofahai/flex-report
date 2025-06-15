@@ -9,9 +9,17 @@ export default function SSOSignInPage() {
   const searchParams = useSearchParams()
   const params = useParams()
 
-  const { client } = useClerk()
   const token = searchParams.get('sign_in_token')
   const redirectUrl = searchParams.get('redirect_url') || `/${params.locale}`
+
+  const debug = false
+  let client = null
+  const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
+  if (hasClerk) {
+    const { client: clerkClient } = useClerk()
+    client = clerkClient
+  }
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -27,7 +35,7 @@ export default function SSOSignInPage() {
       }
       // 如果没开启 Clerk，直接跳转
       if (!client) {
-        router.replace(redirectUrl)
+        !debug && router.replace(redirectUrl)
         return
       }
     }
@@ -46,13 +54,13 @@ export default function SSOSignInPage() {
 
         console.log(signInAttempt)
         if (signInAttempt.status === 'complete') {
-          router.replace(redirectUrl)
+          !debug && router.replace(redirectUrl)
         } else {
           throw new Error('SSO login failed')
         }
       } catch (error) {
         console.error('SSO 登录失败:', error)
-        router.replace('/sign-in?error=sso_failed')
+        !debug && router.replace('/sign-in?error=sso_failed')
       }
     }
     handleSignIn()

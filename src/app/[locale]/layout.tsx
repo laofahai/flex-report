@@ -24,6 +24,7 @@ export default async function RootLayout({
   }
 
   const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
   const clerkLocalization = locale === 'zh' ? clerkLocals.zhCN : clerkLocals.enUS
   const content = (
     <html lang={locale}>
