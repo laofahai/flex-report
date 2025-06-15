@@ -40,8 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/src/generated/prisma
-
 # 忽略本地 SQLite 数据库文件
 prisma/dev.db
 prisma/dev.db-journal

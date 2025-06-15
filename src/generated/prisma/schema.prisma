@@ -1,0 +1,39 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model DataSource {
+  id        String   @id @default(uuid())
+  name      String
+  type      String
+  config    Json?
+  schema    Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TableDesign {
+  id           String   @id @default(uuid())
+  dataSourceId String?
+  name         String
+  schema       Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model DataDict {
+  id        String   @id @default(uuid())
+  name      String
+  items     Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
