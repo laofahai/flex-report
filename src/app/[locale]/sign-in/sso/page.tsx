@@ -28,6 +28,7 @@ export default function SSOSignInPage() {
       const signInToken = url.searchParams.get('sign_in_token')
       if (signInToken) {
         sessionStorage.setItem('json_embed_token_sign_in_token', signInToken)
+        // set cookie for internal auth
       }
       const code = url.searchParams.get('code')
       if (code) {
@@ -75,8 +76,3 @@ export default function SSOSignInPage() {
     </div>
   )
 }
-
-
-
-
-

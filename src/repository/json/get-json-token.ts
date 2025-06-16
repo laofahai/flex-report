@@ -38,11 +38,23 @@ class EmbedTokenFetcher implements JsonTokenFetcher {
   async getToken(config: JsonConfigForm) {
     if (!config.embedTokenParam) return undefined
     if (typeof window !== 'undefined') {
-      // 优先从 sessionStorage 取，兼容 sign_in_token
+      // 优先从 sessionStorage 取，然后从 cookies.session_token,兼容 sign_in_token
       const cacheKey = `json_embed_token_${config.embedTokenParam}`
       const fallbackKeys = ['json_embed_token_sign_in_token']
       let token = getSessionCache(cacheKey, fallbackKeys)
       if (token) return token
+      // 从 cookies 中获取
+      const cookies = document.cookie.split('; ').reduce(
+        (acc, cookie) => {
+          const [key, value] = cookie.split('=')
+          acc[key] = decodeURIComponent(value)
+          return acc
+        },
+        {} as Record<string, string>
+      )
+      token = cookies[config.embedTokenParam] || cookies.session_token || undefined
+      if (token) return token
+
       const url = new URL(window.location.href)
       token = url.searchParams.get(config.embedTokenParam) || undefined
       if (token) sessionStorage.setItem(cacheKey, token)

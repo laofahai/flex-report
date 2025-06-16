@@ -8,6 +8,7 @@ import { DataSourceSchema, DataSourceType } from '@/types/datasource-schema'
 import { toast } from 'sonner'
 import { JsonConfigForm, JsonConfigSchema } from '@/types/json-data-source'
 import JsonConfigFormInner from './json-config-form-inner'
+import { fetchJsonData } from '@/repository/datasource-data-json'
 
 // 对象 key 排序，返回新对象
 function sortObjectKeys<T extends object>(obj: T): T {
@@ -85,29 +86,13 @@ export default function JsonConfig({
     setFetching(true)
     setSample(null)
     try {
-      const url = defaultValues.url
-      const itemsField = defaultValues.itemsField
-      const totalItemsField = defaultValues.totalItemsField
-      const pageSizeField = defaultValues.pageSizeField
-      const currentPageField = defaultValues.currentPageField
-      let fetchUrl = url
-      const urlObj = new URL(url, window.location.origin)
-      if (pageSizeField) urlObj.searchParams.set(pageSizeField, '10')
-      if (currentPageField) urlObj.searchParams.set(currentPageField, '1')
-      fetchUrl = urlObj.toString()
-      const res = await fetch(fetchUrl)
-      let items = await res.json()
-      if (itemsField) {
-        const keys = itemsField.split('.')
-        for (const key of keys) {
-          if (items && typeof items === 'object' && key in items) {
-            items = items[key]
-          } else {
-            items = undefined
-            break
-          }
-        }
-      }
+      const data = await fetchJsonData({
+        datasourceId: dataSource.id,
+        pageSize: 1,
+      })
+
+      const { items } = data
+
       let sampleData,
         schemaData: DataSourceSchema = { fields: [] }
       if (Array.isArray(items) && items?.length > 0) {
@@ -132,6 +117,8 @@ export default function JsonConfig({
           fields: [],
         }
       }
+
+      console.log(items, sampleData)
       setSample(sampleData)
       setLastSchema(schemaData)
     } catch (e) {

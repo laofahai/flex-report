@@ -4,6 +4,7 @@ import { get } from 'lodash-es'
 import { DatasourceData } from '@/types/datasource-data'
 import { getJsonToken } from '@/repository/json/get-json-token'
 import { sendJsonToken } from '@/repository/json/send-json-token'
+import { JsonConfigForm } from '@/types/json-data-source'
 
 /**
  *
@@ -29,7 +30,7 @@ export const fetchJsonData = async (options: FetchJsonDataProps): Promise<Dataso
     datasource = await getDataSourceById(datasourceId!)
   }
 
-  const config = datasource.config
+  const config: JsonConfigForm = datasource.config
 
   // build url
   if (!config.url) {
