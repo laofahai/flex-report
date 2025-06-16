@@ -14,7 +14,7 @@ export default function SSOSignInPage() {
 
   const debug = false
   let client = null
-  const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+  const hasClerk = process.env.AUTH_TYPE === 'clerk'
 
   if (hasClerk) {
     const { client: clerkClient } = useClerk()
@@ -75,3 +75,8 @@ export default function SSOSignInPage() {
     </div>
   )
 }
+
+
+
+
+

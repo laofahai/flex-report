@@ -23,7 +23,7 @@ export default async function RootLayout({
     notFound()
   }
 
-  const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+  const hasClerk = process.env.AUTH_TYPE === 'clerk'
 
   const clerkLocalization = locale === 'zh' ? clerkLocals.zhCN : clerkLocals.enUS
   const content = (

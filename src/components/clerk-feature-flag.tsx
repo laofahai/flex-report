@@ -1,7 +1,7 @@
 // 用于根据 Clerk 配置动态渲染 Clerk 相关组件
 import React from 'react'
 
-const hasClerk = !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+const hasClerk = process.env.AUTH_TYPE === 'clerk'
 
 interface Props {
   children: React.ReactNode

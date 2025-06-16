@@ -15,3 +15,4 @@ export const BaseTableZod = {
 }
 
 export const DataTypeEnum = z.enum(['string', 'number', 'boolean', 'object', 'array', 'date', 'enum'])
+
